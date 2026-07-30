@@ -19,6 +19,7 @@ function App() {
   const [view, setView] = useState<View>('overview')
   const [showModal, setShowModal] = useState(false)
   const [domainImage, setDomainImage] = useState<string | null>(() => localStorage.getItem('growth-library:ai-product-image'))
+  const [imageAnimating, setImageAnimating] = useState(false)
 
   useEffect(() => {
     if (domainImage) localStorage.setItem('growth-library:ai-product-image', domainImage)
@@ -34,7 +35,11 @@ function App() {
       return
     }
     const reader = new FileReader()
-    reader.onload = () => setDomainImage(typeof reader.result === 'string' ? reader.result : null)
+    reader.onload = () => {
+      setDomainImage(typeof reader.result === 'string' ? reader.result : null)
+      setImageAnimating(true)
+      window.setTimeout(() => setImageAnimating(false), 820)
+    }
     reader.readAsDataURL(file)
     event.target.value = ''
   }
@@ -87,13 +92,14 @@ function App() {
             <div className="hero-number"><span>总学习记录</span><strong>024</strong><small>张卡片</small></div>
           </section>
 
-          <section className="black-panel">
+          <section className={`black-panel ${domainImage ? 'has-image' : ''} ${imageAnimating ? 'image-animating' : ''}`}>
+            {domainImage && <div className="panel-image-layer" style={{ backgroundImage: `url(${domainImage})` }} aria-hidden="true" />}
             <div className="panel-heading">
               <div><span className="panel-kicker">01 / TODAY'S FOCUS</span><h2>今天的学习轨迹</h2></div>
               <button className="add-button" onClick={() => setShowModal(true)}>+ 新增学习卡</button>
             </div>
             <div className="focus-grid">
-              <div className={`focus-main ${domainImage ? 'has-image' : ''}`} style={domainImage ? { backgroundImage: `url(${domainImage})` } : undefined}>
+              <div className="focus-main">
                 <span className="topic-number">01</span>
                 <p className="topic-label">正在进行</p>
                 <h3>AI 产品开发<br /><span>前期准备</span></h3>
