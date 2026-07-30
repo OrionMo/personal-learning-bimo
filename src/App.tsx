@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState, type ChangeEvent } from 'react'
 
 type View = 'overview' | 'cards' | 'tree' | 'inbox'
 
@@ -18,6 +18,26 @@ const cards = [
 function App() {
   const [view, setView] = useState<View>('overview')
   const [showModal, setShowModal] = useState(false)
+  const [domainImage, setDomainImage] = useState<string | null>(() => localStorage.getItem('growth-library:ai-product-image'))
+
+  useEffect(() => {
+    if (domainImage) localStorage.setItem('growth-library:ai-product-image', domainImage)
+    else localStorage.removeItem('growth-library:ai-product-image')
+  }, [domainImage])
+
+  const handleDomainImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) return
+    if (file.size > 5 * 1024 * 1024) {
+      window.alert('图片请控制在 5MB 以内')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => setDomainImage(typeof reader.result === 'string' ? reader.result : null)
+    reader.readAsDataURL(file)
+    event.target.value = ''
+  }
 
   const current = navItems.find((item) => item.id === view) ?? navItems[0]
 
@@ -73,12 +93,16 @@ function App() {
               <button className="add-button" onClick={() => setShowModal(true)}>+ 新增学习卡</button>
             </div>
             <div className="focus-grid">
-              <div className="focus-main">
+              <div className={`focus-main ${domainImage ? 'has-image' : ''}`} style={domainImage ? { backgroundImage: `url(${domainImage})` } : undefined}>
                 <span className="topic-number">01</span>
                 <p className="topic-label">正在进行</p>
                 <h3>AI 产品开发<br /><span>前期准备</span></h3>
                 <p className="topic-description">先把需求、页面、架构和规则想清楚。好的地基，会让后面的每一次迭代都更轻。</p>
                 <button className="text-link" onClick={() => setView('cards')}>继续学习 <span>→</span></button>
+                <div className="domain-image-actions">
+                  <label className="image-upload">{domainImage ? '更换激励图' : '+ 设置领域激励图'}<input type="file" accept="image/*" onChange={handleDomainImageUpload} /></label>
+                  {domainImage && <button className="remove-image" onClick={() => setDomainImage(null)}>移除</button>}
+                </div>
               </div>
               <div className="focus-side">
                 <div className="stat-row"><span>本周连续</span><strong>03 <small>天</small></strong></div>
