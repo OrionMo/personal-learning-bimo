@@ -173,7 +173,7 @@ function App() {
                 <p className="topic-description">先把需求、页面、架构和规则想清楚。好的地基，会让后面的每一次迭代都更轻。</p>
                 <button className="text-link" onClick={() => setView('cards')}>继续学习 <span>→</span></button>
                 <div className="domain-image-actions">
-                  <label className="image-upload">{domainImage ? '更换激励图' : '+ 设置领域激励图'}<input type="file" accept="image/*" onChange={handleDomainImageUpload} /></label>
+                  <label className="image-upload">{domainImage ? '更换背景图' : '+ 自定义背景图'}<input type="file" accept="image/*" onChange={handleDomainImageUpload} /></label>
                   {domainImage && <button className="remove-image" onClick={() => setDomainImage(null)}>移除</button>}
                 </div>
               </div>
