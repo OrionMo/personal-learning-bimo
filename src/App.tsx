@@ -110,6 +110,8 @@ function App() {
   }
 
   const current = navItems.find((item) => item.id === view) ?? navItems[0]
+  const domainNoteCount = inboxRecords.filter((record) => (record.domain ?? '未选择领域') === 'AI产品开发').length
+  const skillProgress = 28
 
   return (
     <main className="app-shell">
@@ -177,8 +179,8 @@ function App() {
               </div>
               <div className="focus-side">
                 <div className="stat-row"><span>本周连续</span><strong>03 <small>天</small></strong></div>
-                <div className="stat-row"><span>正在积累</span><strong>04 <small>个领域</small></strong></div>
-                <div className="signal-box"><span>下一步</span><b>把一个想法<br />讲给 AI 听</b><i>↗</i></div>
+                <div className="stat-row"><span>本领域笔记</span><strong>{String(domainNoteCount).padStart(2, '0')} <small>条</small></strong></div>
+                <div className="skill-progress-box"><div><span>技能树学习进展</span><b>AI 产品开发</b></div><div className="progress-ring" style={{ background: `conic-gradient(var(--lime) ${skillProgress}%, #3d403a 0)` }}><div><strong>{skillProgress}%</strong><small>已掌握</small></div></div></div>
               </div>
             </div>
           </section>
