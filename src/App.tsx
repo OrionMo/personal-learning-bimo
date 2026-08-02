@@ -2,7 +2,9 @@ import { useEffect, useState, type ChangeEvent } from 'react'
 
 type View = 'overview' | 'cards' | 'tree' | 'inbox'
 type CaptureMode = 'quick' | 'reflect'
-type InboxRecord = { id: string; rawText: string; context: string; trigger: string; nextStep: string; createdAt: string }
+type InboxRecord = { id: string; domain: string; rawText: string; context: string; trigger: string; nextStep: string; createdAt: string }
+
+const learningDomains = ['AI产品开发', '个人认知', '表达社交', '内容创作', '职场成长']
 
 const navItems: { id: View; label: string; hint: string }[] = [
   { id: 'overview', label: '今日总览', hint: 'OVERVIEW' },
@@ -21,6 +23,7 @@ function App() {
   const [view, setView] = useState<View>('overview')
   const [showModal, setShowModal] = useState(false)
   const [captureMode, setCaptureMode] = useState<CaptureMode>('quick')
+  const [captureDomain, setCaptureDomain] = useState(learningDomains[0])
   const [captureText, setCaptureText] = useState('')
   const [reflection, setReflection] = useState({ context: '', trigger: '', nextStep: '' })
   const [inboxRecords, setInboxRecords] = useState<InboxRecord[]>(() => {
@@ -40,6 +43,7 @@ function App() {
 
   const openCapture = (mode: CaptureMode) => {
     setCaptureMode(mode)
+    setCaptureDomain(learningDomains[0])
     setCaptureText('')
     setReflection({ context: '', trigger: '', nextStep: '' })
     setShowModal(true)
@@ -49,6 +53,7 @@ function App() {
     if (!captureText.trim()) return
     const record: InboxRecord = {
       id: crypto.randomUUID(),
+      domain: captureDomain,
       rawText: captureText.trim(),
       context: reflection.context.trim(),
       trigger: reflection.trigger.trim(),
@@ -167,7 +172,7 @@ function App() {
 
           {view === 'inbox' && <section className="inbox-section">
             <div className="section-title"><div><span className="eyebrow">04 / INBOX</span><h2>待整理的碎片</h2></div><button className="add-button" onClick={() => openCapture('reflect')}>帮我回想</button></div>
-            {inboxRecords.length === 0 ? <div className="inbox-empty">还没有待整理内容。看到什么，就先丢进来。</div> : <div className="inbox-list">{inboxRecords.map((record) => <article className="inbox-record" key={record.id}><div className="inbox-record-meta"><span>{record.createdAt}</span><b>{record.context ? '已回想' : '待回想'}</b></div><p>{record.rawText}</p>{record.context && <div className="reflection-summary"><span>当时场景</span>{record.context}{record.trigger && ` · 触发：${record.trigger}`}</div>}</article>)}</div>}
+            {inboxRecords.length === 0 ? <div className="inbox-empty">还没有待整理内容。看到什么，就先丢进来。</div> : <div className="inbox-list">{inboxRecords.map((record) => <article className="inbox-record" key={record.id}><div className="inbox-record-meta"><span>{record.createdAt}</span><b>{record.domain} · {record.context ? '已回想' : '待回想'}</b></div><p>{record.rawText}</p>{record.context && <div className="reflection-summary"><span>当时场景</span>{record.context}{record.trigger && ` · 触发：${record.trigger}`}</div>}</article>)}</div>}
           </section>}
         </div>
       </section>
@@ -175,6 +180,7 @@ function App() {
       {showModal && <div className="modal-backdrop" onClick={() => setShowModal(false)}><div className="capture-modal" onClick={(event) => event.stopPropagation()}>
         <div className="capture-modal-head"><div><span className="eyebrow lime-text">QUICK CAPTURE</span><h2>{captureMode === 'quick' ? '先记下来，不要打断自己' : '帮你回想一下当时'}</h2></div><button className="close-button" onClick={() => setShowModal(false)}>×</button></div>
         <div className="capture-mode-switch"><button className={captureMode === 'quick' ? 'selected' : ''} onClick={() => setCaptureMode('quick')}>快速保存</button><button className={captureMode === 'reflect' ? 'selected' : ''} onClick={() => setCaptureMode('reflect')}>帮我回想</button></div>
+        <label className="domain-select-label">学习领域选择<select value={captureDomain} onChange={(event) => setCaptureDomain(event.target.value)}>{learningDomains.map((domain) => <option key={domain} value={domain}>{domain}</option>)}</select></label>
         <label className="capture-label">刚刚捕捉到的内容<textarea value={captureText} onChange={(event) => setCaptureText(event.target.value)} placeholder="一句话、一个链接，或者一段还没想清楚的话……" autoFocus /></label>
         {captureMode === 'reflect' && <div className="reflection-fields"><label>你当时正在做什么？<input value={reflection.context} onChange={(event) => setReflection({ ...reflection, context: event.target.value })} placeholder="比如：下班路上刷到一条视频" /></label><label>是什么让你停下来想到它？<input value={reflection.trigger} onChange={(event) => setReflection({ ...reflection, trigger: event.target.value })} placeholder="比如：它刚好解决了我今天遇到的问题" /></label><label>之后想试试什么？<input value={reflection.nextStep} onChange={(event) => setReflection({ ...reflection, nextStep: event.target.value })} placeholder="可以先空着，之后再补" /></label></div>}
         <div className="modal-actions"><button className="plain-link" onClick={() => setShowModal(false)}>取消</button><button className="add-button" onClick={saveCapture}>{captureMode === 'quick' ? '立即保存' : '保存并完成回想'}</button></div>
