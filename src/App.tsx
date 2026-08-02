@@ -2,7 +2,7 @@ import { useEffect, useState, type ChangeEvent, type ClipboardEvent } from 'reac
 
 type View = 'overview' | 'cards' | 'tree' | 'inbox'
 type CaptureMode = 'quick' | 'reflect'
-type InboxRecord = { id: string; domain: string; rawText: string; context: string; trigger: string; nextStep: string; createdAt: string; image?: string }
+type InboxRecord = { id: string; domain: string; rawText: string; context: string; trigger: string; nextStep: string; createdAt: string; images?: string[]; image?: string }
 
 const learningDomains = ['AI产品开发', '个人认知', '表达社交', '内容创作', '职场成长']
 
@@ -25,7 +25,7 @@ function App() {
   const [captureMode, setCaptureMode] = useState<CaptureMode>('quick')
   const [captureDomain, setCaptureDomain] = useState(learningDomains[0])
   const [captureText, setCaptureText] = useState('')
-  const [captureImage, setCaptureImage] = useState<string | null>(null)
+  const [captureImages, setCaptureImages] = useState<string[]>([])
   const [reflection, setReflection] = useState({ context: '', trigger: '', nextStep: '' })
   const [inboxRecords, setInboxRecords] = useState<InboxRecord[]>(() => {
     try { return JSON.parse(localStorage.getItem('growth-library:inbox') ?? '[]') as InboxRecord[] } catch { return [] }
@@ -46,7 +46,7 @@ function App() {
     setCaptureMode(mode)
     setCaptureDomain(learningDomains[0])
     setCaptureText('')
-    setCaptureImage(null)
+    setCaptureImages([])
     setReflection({ context: '', trigger: '', nextStep: '' })
     setShowModal(true)
   }
@@ -61,7 +61,7 @@ function App() {
       trigger: reflection.trigger.trim(),
       nextStep: reflection.nextStep.trim(),
       createdAt: new Date().toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-      image: captureImage ?? undefined,
+      images: captureImages,
     }
     setInboxRecords((records) => [record, ...records])
     setShowModal(false)
@@ -70,12 +70,16 @@ function App() {
 
   const readCaptureImage = (file: File) => {
     if (!file.type.startsWith('image/')) return
+    if (captureImages.length >= 9) {
+      window.alert('每条记录最多上传 9 张图片')
+      return
+    }
     if (file.size > 5 * 1024 * 1024) {
       window.alert('图片请控制在 5MB 以内')
       return
     }
     const reader = new FileReader()
-    reader.onload = () => setCaptureImage(typeof reader.result === 'string' ? reader.result : null)
+    reader.onload = () => { if (typeof reader.result === 'string') setCaptureImages((images) => images.length < 9 ? [...images, reader.result as string] : images) }
     reader.readAsDataURL(file)
   }
 
@@ -194,7 +198,7 @@ function App() {
 
           {view === 'inbox' && <section className="inbox-section">
             <div className="section-title"><div><span className="eyebrow">04 / INBOX</span><h2>待整理的碎片</h2></div><button className="add-button" onClick={() => openCapture('reflect')}>帮我回想</button></div>
-            {inboxRecords.length === 0 ? <div className="inbox-empty">还没有待整理内容。看到什么，就先丢进来。</div> : <div className="inbox-list">{inboxRecords.map((record) => <article className="inbox-record" key={record.id}><div className="inbox-record-meta"><span>{record.createdAt}</span><b>{record.domain ?? '未选择领域'} · {record.context ? '已回想' : '待回想'}</b></div><p>{record.rawText}</p>{record.image && <img className="inbox-record-image" src={record.image} alt="记录中的图片" />}{record.context && <div className="reflection-summary"><span>当时场景</span>{record.context}{record.trigger && ` · 触发：${record.trigger}`}</div>}</article>)}</div>}
+            {inboxRecords.length === 0 ? <div className="inbox-empty">还没有待整理内容。看到什么，就先丢进来。</div> : <div className="inbox-list">{inboxRecords.map((record) => <article className="inbox-record" key={record.id}><div className="inbox-record-meta"><span>{record.createdAt}</span><b>{record.domain ?? '未选择领域'} · {record.context ? '已回想' : '待回想'}</b></div><p>{record.rawText}</p>{(record.images ?? (record.image ? [record.image] : [])).length > 0 && <div className="inbox-record-images">{(record.images ?? (record.image ? [record.image] : [])).map((image, index) => <img className="inbox-record-image" key={`${record.id}-${index}`} src={image} alt={`记录中的图片 ${index + 1}`} />)}</div>}{record.context && <div className="reflection-summary"><span>当时场景</span>{record.context}{record.trigger && ` · 触发：${record.trigger}`}</div>}</article>)}</div>}
           </section>}
         </div>
       </section>
@@ -204,8 +208,8 @@ function App() {
         <div className="capture-mode-switch"><button className={captureMode === 'quick' ? 'selected' : ''} onClick={() => setCaptureMode('quick')}>快速保存</button><button className={captureMode === 'reflect' ? 'selected' : ''} onClick={() => setCaptureMode('reflect')}>帮我回想</button></div>
         <div className="domain-select-label"><span>学习领域选择</span><div className="domain-picker">{learningDomains.map((domain) => <button className={`domain-chip ${captureDomain === domain ? 'selected' : ''}`} key={domain} onClick={() => setCaptureDomain(domain)} aria-pressed={captureDomain === domain}>{domain}</button>)}</div></div>
         <label className="capture-label">刚刚捕捉到的内容<textarea value={captureText} onChange={(event) => setCaptureText(event.target.value)} onPaste={handleCapturePaste} placeholder="一句话、一个链接，或者一段还没想清楚的话……" autoFocus /></label>
-        <div className="capture-image-tools"><label className="image-attach-button">+ 上传图片<input type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0]; if (file) readCaptureImage(file); event.target.value = '' }} /></label><span>也可以直接 Ctrl + V 粘贴图片</span>{captureImage && <button className="remove-capture-image" onClick={() => setCaptureImage(null)}>移除图片</button>}</div>
-        {captureImage && <img className="capture-image-preview" src={captureImage} alt="待保存的图片预览" />}
+        <div className="capture-image-tools"><label className="image-attach-button">+ 上传图片（{captureImages.length}/9）<input type="file" accept="image/*" multiple onChange={(event) => { Array.from(event.target.files ?? []).slice(0, 9 - captureImages.length).forEach(readCaptureImage); event.target.value = '' }} /></label><span>也可以直接 Ctrl + V 粘贴图片</span>{captureImages.length > 0 && <button className="remove-capture-image" onClick={() => setCaptureImages([])}>全部移除</button>}</div>
+        {captureImages.length > 0 && <div className="capture-image-previews">{captureImages.map((image, index) => <div className="capture-image-preview-wrap" key={`capture-${index}`}><img className="capture-image-preview" src={image} alt={`待保存的图片 ${index + 1}`} /><button className="remove-one-image" onClick={() => setCaptureImages((images) => images.filter((_, imageIndex) => imageIndex !== index))}>×</button></div>)}</div>}
         {captureMode === 'reflect' && <div className="reflection-fields"><label>你当时正在做什么？<input value={reflection.context} onChange={(event) => setReflection({ ...reflection, context: event.target.value })} placeholder="比如：下班路上刷到一条视频" /></label><label>是什么让你停下来想到它？<input value={reflection.trigger} onChange={(event) => setReflection({ ...reflection, trigger: event.target.value })} placeholder="比如：它刚好解决了我今天遇到的问题" /></label><label>之后想试试什么？<input value={reflection.nextStep} onChange={(event) => setReflection({ ...reflection, nextStep: event.target.value })} placeholder="可以先空着，之后再补" /></label></div>}
         <div className="modal-actions"><button className="plain-link" onClick={() => setShowModal(false)}>取消</button><button className="add-button" onClick={saveCapture}>{captureMode === 'quick' ? '立即保存' : '保存并完成回想'}</button></div>
       </div></div>}
