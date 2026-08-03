@@ -262,6 +262,50 @@ button, textarea, input, select { font-family: inherit; }
   line-height: 1.7;
 }
 
+.domain-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.domain-card {
+  min-height: 218px;
+  border: 1px solid rgba(0, 0, 0, .06);
+  border-radius: 24px;
+  padding: 22px;
+  text-align: left;
+  color: var(--ink);
+  box-shadow: 0 8px 24px rgba(30, 30, 40, .06);
+  transition: transform 180ms cubic-bezier(.34, 1.56, .64, 1), box-shadow 180ms ease;
+}
+
+.domain-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px rgba(30, 30, 40, .1);
+}
+
+.domain-lime { background: #eff8c9; }
+.domain-coral { background: #fff0ed; }
+.domain-blue { background: #eaf3ff; }
+.domain-purple { background: #f2edff; }
+.domain-green { background: #eaf7e8; }
+
+.domain-card-topline,
+.domain-card-meta,
+.domain-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.domain-card-topline { color: #6e6e73; }
+.domain-card-topline > span:last-child { color: #0071e3; font-size: 20px; }
+.domain-card h3 { margin: 28px 0 8px; font-size: 25px; letter-spacing: -.06em; }
+.domain-card p { min-height: 46px; margin: 0 0 22px; color: #6e6e73; font-size: 13px; line-height: 1.7; }
+.domain-card-meta { color: #6e6e73; font-size: 12px; }.domain-card-meta strong { color: var(--ink); font: 500 19px 'DM Mono', monospace; }
+.domain-card-progress { height: 5px; margin-top: 9px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.8); }.domain-card-progress i { display: block; height: 100%; border-radius: inherit; background: #0071e3; }
+.domain-detail-head { margin-bottom: 32px; }.back-link { border: 0; background: transparent; color: #0071e3; padding: 0; font-size: 13px; }.domain-detail-progress { color: #0071e3; font: 500 12px 'DM Mono', monospace; }.domain-note-strip { display: flex; align-items: center; gap: 16px; margin-top: 18px; border: 1px solid var(--line); border-radius: 18px; background: var(--card); padding: 18px 20px; }.domain-note-strip span { color: #6e6e73; }.domain-note-strip strong { font: 500 20px 'DM Mono', monospace; }.domain-note-strip .plain-link { margin-left: auto; }
+
 @media (max-width: 850px) {
   .view-page { padding: 16px 0 40px; }
   .view-page .section-title { align-items: flex-start; }
@@ -269,6 +313,12 @@ button, textarea, input, select { font-family: inherit; }
   .status-tabs { overflow-x: auto; padding-bottom: 4px; }
   .status-tabs button { flex: 0 0 auto; }
   .skill-map-board { min-height: 280px; border-radius: 18px; }
+  .domain-card-grid { grid-template-columns: 1fr; }
+  .domain-card { min-height: 190px; border-radius: 20px; }
+  .domain-detail-head { align-items: flex-start; gap: 14px; }
+  .domain-detail-head .add-button { padding: 10px 12px; font-size: 11px; }
+  .domain-note-strip { flex-wrap: wrap; }
+  .domain-note-strip .plain-link { width: 100%; margin-left: 0; }
   .learning-card-detail { padding: 24px; border-radius: 22px; }
   .learning-card-detail h2 { font-size: 25px; }
   .detail-meta-grid { grid-template-columns: 1fr; }

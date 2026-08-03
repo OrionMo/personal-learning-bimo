@@ -6,6 +6,14 @@ type InboxRecord = { id: string; domain: string; rawText: string; context: strin
 
 const learningDomains = ['AI产品开发', '个人认知', '表达社交', '内容创作', '职场成长']
 
+const domainCatalog = [
+  { name: 'AI产品开发', summary: '从需求、设计到上线，建立自己的产品开发方法。', progress: 28, tone: 'domain-lime' },
+  { name: '个人认知', summary: '记录判断、选择和复盘，慢慢形成自己的思考框架。', progress: 12, tone: 'domain-coral' },
+  { name: '表达社交', summary: '把复杂的事情讲清楚，也把自己的想法传递出去。', progress: 20, tone: 'domain-blue' },
+  { name: '内容创作', summary: '积累选题、表达和内容生产的方法与素材。', progress: 8, tone: 'domain-purple' },
+  { name: '职场成长', summary: '记录工作中的经验、反馈和可以复用的行动。', progress: 16, tone: 'domain-green' },
+]
+
 const navItems: { id: View; label: string; hint: string }[] = [
   { id: 'overview', label: '今日总览', hint: 'OVERVIEW' },
   { id: 'cards', label: '学习卡片', hint: 'LIBRARY' },
@@ -23,6 +31,7 @@ function App() {
   const [view, setView] = useState<View>('overview')
   const [showModal, setShowModal] = useState(false)
   const [selectedCard, setSelectedCard] = useState<(typeof cards)[number] | null>(null)
+  const [selectedDomain, setSelectedDomain] = useState<string | null>(null)
   const [captureMode, setCaptureMode] = useState<CaptureMode>('quick')
   const [captureDomain, setCaptureDomain] = useState(learningDomains[0])
   const [captureText, setCaptureText] = useState('')
@@ -206,10 +215,21 @@ function App() {
             <div className="card-stack full-card-stack">{cards.map((card, index) => <article className="learning-card" key={card.title} onClick={() => setSelectedCard(card)} role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') setSelectedCard(card) }}><div className={`card-dot ${card.tone}`} /><span className="card-index">0{index + 1}</span><div className="card-copy"><span>{card.tag}</span><h3>{card.title}</h3></div><b className="card-status">{card.status}</b><span className="card-arrow">↗</span></article>)}</div>
           </section>}
 
-          {view === 'tree' && <section className="view-page tree-page">
-            <div className="section-title"><div><span className="eyebrow">03 / SKILL MAP</span><h2>我的技能树</h2></div><button className="add-button" onClick={() => openCapture('quick')}>+ 记录学习</button></div>
-            <p className="view-intro">技能树先保持空白。每当你真正形成理解，再把它放进合适的节点。</p>
-            <div className="skill-map-board"><div className="tree-node root-node">我的能力地图</div><div className="tree-branches"><i /><i /><i /></div><div className="tree-node ghost-node">从一个领域开始</div><p>你还没有建立技能节点，可以先从快速记录开始。</p></div>
+          {view === 'tree' && !selectedDomain && <section className="view-page tree-page">
+            <div className="section-title"><div><span className="eyebrow">03 / MY DOMAINS</span><h2>我的领域</h2></div><button className="add-button" onClick={() => openCapture('quick')}>+ 快速记录</button></div>
+            <p className="view-intro">先选择一个正在积累的领域，再进入它的技能树。你的每条碎片笔记，都可以慢慢长成自己的能力结构。</p>
+            <div className="domain-card-grid">{domainCatalog.map((domain) => {
+              const count = inboxRecords.filter((record) => (record.domain ?? '未选择领域') === domain.name).length
+              return <button className={`domain-card ${domain.tone}`} key={domain.name} onClick={() => setSelectedDomain(domain.name)}><div className="domain-card-topline"><span className="eyebrow">DOMAIN / 0{domainCatalog.indexOf(domain) + 1}</span><span>↗</span></div><h3>{domain.name}</h3><p>{domain.summary}</p><div className="domain-card-meta"><span>{count} 条笔记</span><strong>{domain.progress}%</strong></div><div className="domain-card-progress"><i style={{ width: `${domain.progress}%` }} /></div></button>
+            })}</div>
+          </section>}
+
+          {view === 'tree' && selectedDomain && <section className="view-page tree-page">
+            <div className="domain-detail-head"><button className="back-link" onClick={() => setSelectedDomain(null)}>← 我的领域</button><button className="add-button" onClick={() => openCapture('quick')}>+ 记录到{selectedDomain}</button></div>
+            <div className="section-title"><div><span className="eyebrow">03 / SKILL MAP</span><h2>{selectedDomain}</h2></div><span className="domain-detail-progress">{domainCatalog.find((domain) => domain.name === selectedDomain)?.progress ?? 0}% 学习进展</span></div>
+            <p className="view-intro">从真实记录中整理节点，不追求一开始就完整。先留下足迹，再慢慢长出自己的技能树。</p>
+            <div className="skill-map-board"><div className="tree-node root-node">{selectedDomain}</div><div className="tree-branches"><i /><i /><i /></div><div className="tree-node ghost-node">+ 添加第一个技能节点</div><p>还没有建立技能节点。你可以先快速记录，等有了稳定理解，再把它放进技能树。</p><button className="plain-link" onClick={() => openCapture('quick')}>先记录一条 →</button></div>
+            <div className="domain-note-strip"><span>本领域笔记</span><strong>{inboxRecords.filter((record) => (record.domain ?? '未选择领域') === selectedDomain).length} 条</strong><button className="plain-link" onClick={() => setView('inbox')}>查看记录 →</button></div>
           </section>}
 
           {view === 'inbox' && <section className="inbox-section">
