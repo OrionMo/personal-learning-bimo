@@ -1,0 +1,10 @@
+{
+  "name": "个人能力成长库",
+  "short_name": "成长库",
+  "description": "记录学习、回想和个人能力成长",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f5f7",
+  "theme_color": "#0071e3",
+  "lang": "zh-CN"
+}

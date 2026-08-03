@@ -205,6 +205,11 @@ function App() {
         </div>
       </section>
 
+      <nav className="mobile-nav" aria-label="手机端主导航">
+        {navItems.map((item) => <button className={view === item.id ? 'active' : ''} key={item.id} onClick={() => setView(item.id)}><span>{item.label}</span>{item.id === 'inbox' && inboxRecords.length > 0 && <b>{inboxRecords.length}</b>}</button>)}
+      </nav>
+      <button className="mobile-capture" onClick={() => openCapture('quick')}>+</button>
+
       {showModal && <div className="modal-backdrop" onClick={() => setShowModal(false)}><div className="capture-modal" onClick={(event) => event.stopPropagation()}>
         <div className="capture-modal-head"><div><span className="eyebrow lime-text">QUICK CAPTURE</span><h2>{captureMode === 'quick' ? '先记下来，不要打断自己' : '帮你回想一下当时'}</h2></div><button className="close-button" onClick={() => setShowModal(false)}>×</button></div>
         <div className="capture-mode-switch"><button className={captureMode === 'quick' ? 'selected' : ''} onClick={() => setCaptureMode('quick')}>快速保存</button><button className={captureMode === 'reflect' ? 'selected' : ''} onClick={() => setCaptureMode('reflect')}>帮我回想</button></div>
