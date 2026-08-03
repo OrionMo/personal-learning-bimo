@@ -16,7 +16,7 @@ const navItems: { id: View; label: string; hint: string }[] = [
 const cards = [
   { tag: 'AI产品开发', title: '先把图纸画出来，再让 AI 写第一行代码', status: '会用', tone: 'lime', learned: '开始写代码前，先把需求、页面、架构和验收标准写清楚。', skillNode: 'AI产品开发 / 前期准备', understanding: '这样 AI 的每次输出都有边界，也更容易检查。', useCase: '下次启动一个新功能时，先让 AI 输出需求清单和验收标准。', related: '项目开发流程 · PRD 文档', nextStep: '把个人学习库的快速记录流程整理成一页 PRD。' },
   { tag: '个人认知', title: '真正的成长，不是知道更多，而是能做出选择', status: '看过', tone: 'coral', learned: '信息本身不会自动变成能力，只有在具体场景里做过判断，才会留下自己的方法。', skillNode: '个人认知 / 判断力', understanding: '记录判断过程，比只记录最后的结果更有复用价值。', useCase: '遇到选择困难时，记录当时的判断依据，而不是只记录结果。', related: '选择复盘 · 个人决策记录', nextStep: '回想最近一次重要选择，补充当时的依据。' },
-  { tag: '表达社交', title: '把复杂的事情讲清楚，是一种可以训练的能力', status: '能改', tone: 'blue', learned: '表达不是把所有信息都说出来，而是先找到对方最需要理解的那一个核心。', skillNode: '表达社交 / 结构化表达', understanding: '先讲结论和价值，再补充必要细节，更容易让别人听懂。', useCase: '汇报、面试或向别人介绍自己的项目时，先讲结论和价值。', related: '项目介绍模板 · 三句话表达练习', nextStep: '用三句话重新介绍一个自己做过的项目。' },
+  { tag: '表达社交', title: '把复杂的事情讲清楚，是一种可以训练的能力', status: '能讲', tone: 'blue', learned: '表达不是把所有信息都说出来，而是先找到对方最需要理解的那一个核心。', skillNode: '表达社交 / 结构化表达', understanding: '先讲结论和价值，再补充必要细节，更容易让别人听懂。', useCase: '汇报、面试或向别人介绍自己的项目时，先讲结论和价值。', related: '项目介绍模板 · 三句话表达练习', nextStep: '用三句话重新介绍一个自己做过的项目。' },
 ]
 
 function App() {
@@ -201,8 +201,8 @@ function App() {
 
           {view === 'cards' && <section className="view-page cards-page">
             <div className="section-title"><div><span className="eyebrow">02 / LEARNING CARDS</span><h2>学习卡片</h2></div><button className="add-button" onClick={() => openCapture('quick')}>+ 新建记录</button></div>
-            <p className="view-intro">把看过的内容变成自己的理解，再逐步走到会用和能改。</p>
-            <div className="status-tabs"><button className="selected">全部</button><button>看过</button><button>会用</button><button>能改</button></div>
+            <p className="view-intro">把看过的内容变成自己的理解，再逐步走到能讲和会用。</p>
+            <div className="status-tabs"><button className="selected">全部</button><button>看过</button><button>能讲</button><button>会用</button></div>
             <div className="card-stack full-card-stack">{cards.map((card, index) => <article className="learning-card" key={card.title} onClick={() => setSelectedCard(card)} role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') setSelectedCard(card) }}><div className={`card-dot ${card.tone}`} /><span className="card-index">0{index + 1}</span><div className="card-copy"><span>{card.tag}</span><h3>{card.title}</h3></div><b className="card-status">{card.status}</b><span className="card-arrow">↗</span></article>)}</div>
           </section>}
 
