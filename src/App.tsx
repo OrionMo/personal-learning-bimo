@@ -150,16 +150,16 @@ function App() {
         </header>
 
         <div className="page-content">
-          <section className="hero-row">
+          {view === 'overview' && <section className="hero-row">
             <div>
               <p className="eyebrow lime-text">THURSDAY / DAILY CHECK-IN</p>
               <h1>今天，<br /><em>你收获了什么？</em></h1>
               <p className="hero-note">把零散的输入，变成可以反复使用的个人能力。</p>
             </div>
             <div className="hero-number"><span>总学习记录</span><strong>024</strong><small>张卡片</small></div>
-          </section>
+          </section>}
 
-          <section className={`black-panel ${domainImage ? 'has-image' : ''} ${imageAnimating ? 'image-animating' : ''}`}>
+          {view === 'overview' && <section className={`black-panel ${domainImage ? 'has-image' : ''} ${imageAnimating ? 'image-animating' : ''}`}>
             {domainImage && <div className="panel-image-layer" style={{ backgroundImage: `url(${domainImage})` }} aria-hidden="true" />}
             <div className="panel-heading">
               <div><span className="panel-kicker">01 / TODAY'S FOCUS</span><h2>今天的学习轨迹</h2></div>
@@ -183,9 +183,9 @@ function App() {
                 <div className="skill-progress-box"><div><span>技能树学习进展</span><b>AI 产品开发</b></div><div className="progress-ring" style={{ background: `conic-gradient(var(--lime) ${skillProgress}%, #3d403a 0)` }}><div><strong>{skillProgress}%</strong><small>已掌握</small></div></div></div>
               </div>
             </div>
-          </section>
+          </section>}
 
-          <section className="lower-grid">
+          {view === 'overview' && <section className="lower-grid">
             <div className="section-block">
               <div className="section-title"><div><span className="eyebrow">02 / RECENT NOTES</span><h2>最近的学习卡</h2></div><button className="plain-link" onClick={() => setView('cards')}>查看全部 →</button></div>
               <div className="card-stack">
@@ -196,7 +196,20 @@ function App() {
               <div className="section-title"><div><span className="eyebrow">03 / SKILL MAP</span><h2>技能树还是空的</h2></div><button className="plain-link" onClick={() => setView('tree')}>去建立 →</button></div>
               <div className="empty-tree"><div className="tree-node root-node">我的能力地图</div><div className="tree-branches"><i /><i /><i /></div><div className="tree-node ghost-node">从一个领域开始</div><p>你可以先记录，等真正形成自己的理解后，再决定它应该长在哪里。</p></div>
             </div>
-          </section>
+          </section>}
+
+          {view === 'cards' && <section className="view-page cards-page">
+            <div className="section-title"><div><span className="eyebrow">02 / LEARNING CARDS</span><h2>学习卡片</h2></div><button className="add-button" onClick={() => openCapture('quick')}>+ 新建记录</button></div>
+            <p className="view-intro">把看过的内容变成自己的理解，再逐步走到会用和能改。</p>
+            <div className="status-tabs"><button className="selected">全部</button><button>看过</button><button>会用</button><button>能改</button></div>
+            <div className="card-stack full-card-stack">{cards.map((card, index) => <article className="learning-card" key={card.title}><div className={`card-dot ${card.tone}`} /><span className="card-index">0{index + 1}</span><div className="card-copy"><span>{card.tag}</span><h3>{card.title}</h3></div><b className="card-status">{card.status}</b></article>)}</div>
+          </section>}
+
+          {view === 'tree' && <section className="view-page tree-page">
+            <div className="section-title"><div><span className="eyebrow">03 / SKILL MAP</span><h2>我的技能树</h2></div><button className="add-button" onClick={() => openCapture('quick')}>+ 记录学习</button></div>
+            <p className="view-intro">技能树先保持空白。每当你真正形成理解，再把它放进合适的节点。</p>
+            <div className="skill-map-board"><div className="tree-node root-node">我的能力地图</div><div className="tree-branches"><i /><i /><i /></div><div className="tree-node ghost-node">从一个领域开始</div><p>你还没有建立技能节点，可以先从快速记录开始。</p></div>
+          </section>}
 
           {view === 'inbox' && <section className="inbox-section">
             <div className="section-title"><div><span className="eyebrow">04 / INBOX</span><h2>待整理的碎片</h2></div><button className="add-button" onClick={() => openCapture('reflect')}>帮我回想</button></div>
