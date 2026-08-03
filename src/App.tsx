@@ -14,6 +14,14 @@ const domainCatalog = [
   { name: '职场成长', summary: '记录工作中的经验、反馈和可以复用的行动。', progress: 16, tone: 'domain-green' },
 ]
 
+const recommendedSkillNodes: Record<string, string[]> = {
+  'AI产品开发': ['产品需求', 'AI能力', '技术实现', '上线复盘'],
+  '个人认知': ['自我理解', '判断选择', '情绪管理', '行动复盘'],
+  '表达社交': ['结构表达', '倾听提问', '关系沟通', '公开表达'],
+  '内容创作': ['选题判断', '内容结构', '表达风格', '复盘迭代'],
+  '职场成长': ['工作方法', '项目协作', '反馈沟通', '职业规划'],
+}
+
 const navItems: { id: View; label: string; hint: string }[] = [
   { id: 'overview', label: '今日总览', hint: 'OVERVIEW' },
   { id: 'cards', label: '学习卡片', hint: 'LIBRARY' },
@@ -228,7 +236,7 @@ function App() {
             <div className="domain-detail-head"><button className="back-link" onClick={() => setSelectedDomain(null)}>← 我的领域</button><button className="add-button" onClick={() => openCapture('quick')}>+ 记录到{selectedDomain}</button></div>
             <div className="section-title"><div><span className="eyebrow">03 / SKILL MAP</span><h2>{selectedDomain}</h2></div><span className="domain-detail-progress">{domainCatalog.find((domain) => domain.name === selectedDomain)?.progress ?? 0}% 学习进展</span></div>
             <p className="view-intro">从真实记录中整理节点，不追求一开始就完整。先留下足迹，再慢慢长出自己的技能树。</p>
-            <div className="skill-map-board"><div className="tree-node root-node">{selectedDomain}</div><div className="tree-branches"><i /><i /><i /></div><div className="tree-node ghost-node">+ 添加第一个技能节点</div><p>还没有建立技能节点。你可以先快速记录，等有了稳定理解，再把它放进技能树。</p><button className="plain-link" onClick={() => openCapture('quick')}>先记录一条 →</button></div>
+            <div className="skill-map-board neural-map"><div className="neural-line line-one" /><div className="neural-line line-two" /><div className="neural-line line-three" /><div className="neural-node neural-root"><span className="node-kicker">目标领域</span><strong>{selectedDomain}</strong></div>{(recommendedSkillNodes[selectedDomain] ?? []).map((node, index) => <button className={`neural-node neural-branch branch-${index + 1}`} key={node} onClick={() => window.alert('这是系统建议节点，确认目标后即可加入技能树')}><span className="node-pulse" /><strong>{node}</strong><small>建议方向</small></button>)}<div className="neural-hint">系统先给你一张目标草图，确认后再开始积累</div></div>
             <div className="domain-note-strip"><span>本领域笔记</span><strong>{inboxRecords.filter((record) => (record.domain ?? '未选择领域') === selectedDomain).length} 条</strong><button className="plain-link" onClick={() => setView('inbox')}>查看记录 →</button></div>
           </section>}
 
