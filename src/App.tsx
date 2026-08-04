@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent, type PointerEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent, type PointerEvent, type WheelEvent } from 'react'
 
 type View = 'overview' | 'cards' | 'tree' | 'inbox'
 type CaptureMode = 'quick' | 'reflect'
@@ -22,13 +22,6 @@ const recommendedSkillNodes: Record<string, string[]> = {
   '职场成长': ['工作方法', '项目协作', '反馈沟通', '职业规划'],
 }
 
-const defaultNeuralPositions = [
-  { x: 18, y: 14 },
-  { x: 84, y: 22 },
-  { x: 14, y: 78 },
-  { x: 75, y: 86 },
-]
-
 const navItems: { id: View; label: string; hint: string }[] = [
   { id: 'overview', label: '今日总览', hint: 'OVERVIEW' },
   { id: 'cards', label: '学习卡片', hint: 'LIBRARY' },
@@ -42,6 +35,69 @@ const cards = [
   { tag: '表达社交', title: '把复杂的事情讲清楚，是一种可以训练的能力', status: '能讲', tone: 'blue', learned: '表达不是把所有信息都说出来，而是先找到对方最需要理解的那一个核心。', skillNode: '表达社交 / 结构化表达', understanding: '先讲结论和价值，再补充必要细节，更容易让别人听懂。', useCase: '汇报、面试或向别人介绍自己的项目时，先讲结论和价值。', related: '项目介绍模板 · 三句话表达练习', nextStep: '用三句话重新介绍一个自己做过的项目。' },
 ]
 
+type ForcePoint = { x: number; y: number; vx: number; vy: number }
+
+function ForceSkillMap({ domain, labels, onEdit }: { domain: string; labels: string[]; onEdit: (index: number, label: string) => void }) {
+  const boardRef = useRef<HTMLDivElement>(null)
+  const interactionRef = useRef<{ type: 'node' | 'pan'; index?: number; moved: boolean; startX: number; startY: number; startPanX: number; startPanY: number } | null>(null)
+  const [size, setSize] = useState({ width: 0, height: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [pan, setPan] = useState({ x: 0, y: 0 })
+  const [points, setPoints] = useState<ForcePoint[]>([])
+
+  useEffect(() => {
+    if (!boardRef.current) return
+    const updateSize = () => { if (boardRef.current) { const rect = boardRef.current.getBoundingClientRect(); setSize({ width: rect.width, height: rect.height }) } }
+    updateSize()
+    const observer = new ResizeObserver(updateSize)
+    observer.observe(boardRef.current)
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    const centerX = size.width / 2 || 420
+    const centerY = size.height / 2 || 260
+    const radius = Math.min(centerX, centerY) * .68
+    setPoints(labels.map((_, index) => { const angle = (-Math.PI / 2) + index * (Math.PI * 2 / Math.max(labels.length, 1)); return { x: centerX + Math.cos(angle) * radius, y: centerY + Math.sin(angle) * radius, vx: 0, vy: 0 } }))
+    setZoom(1)
+    setPan({ x: 0, y: 0 })
+  }, [domain, labels.join('|'), size.width, size.height])
+
+  useEffect(() => {
+    let frame = 0
+    const tick = () => {
+      setPoints((current) => {
+        if (!current.length) return current
+        const centerX = size.width / 2 || 420
+        const centerY = size.height / 2 || 260
+        return current.map((point, index) => {
+          if (interactionRef.current?.type === 'node' && interactionRef.current.index === index) return point
+          let fx = (centerX - point.x) * .0009
+          let fy = (centerY - point.y) * .0009
+          current.forEach((other, otherIndex) => { if (index === otherIndex) return; const dx = point.x - other.x; const dy = point.y - other.y; const distance = Math.max(Math.hypot(dx, dy), 26); const force = 1150 / (distance * distance); fx += (dx / distance) * force; fy += (dy / distance) * force })
+          const vx = (point.vx + fx) * .965
+          const vy = (point.vy + fy) * .965
+          return { x: Math.max(74, Math.min(size.width - 74 || 766, point.x + vx)), y: Math.max(74, Math.min(size.height - 74 || 446, point.y + vy)), vx, vy }
+        })
+      })
+      frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+  }, [size.width, size.height])
+
+  const worldPoint = (event: PointerEvent<HTMLElement>) => { const rect = boardRef.current?.getBoundingClientRect(); if (!rect) return { x: 0, y: 0 }; return { x: (event.clientX - rect.left - rect.width / 2 - pan.x) / zoom + rect.width / 2, y: (event.clientY - rect.top - rect.height / 2 - pan.y) / zoom + rect.height / 2 } }
+  const handleNodeDown = (event: PointerEvent<HTMLButtonElement>, index: number) => { event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); interactionRef.current = { type: 'node', index, moved: false, startX: event.clientX, startY: event.clientY, startPanX: pan.x, startPanY: pan.y }; setPoints((current) => current.map((point, pointIndex) => pointIndex === index ? { ...point, vx: 0, vy: 0 } : point)) }
+  const handleNodeMove = (event: PointerEvent<HTMLButtonElement>, index: number) => { const interaction = interactionRef.current; if (!interaction || interaction.type !== 'node' || interaction.index !== index) return; const point = worldPoint(event); if (Math.hypot(event.clientX - interaction.startX, event.clientY - interaction.startY) > 4) interaction.moved = true; setPoints((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, x: point.x, y: point.y, vx: 0, vy: 0 } : item)) }
+  const handleNodeUp = (event: PointerEvent<HTMLButtonElement>, index: number) => { const interaction = interactionRef.current; event.currentTarget.releasePointerCapture(event.pointerId); if (interaction?.type === 'node' && interaction.index === index && !interaction.moved) onEdit(index, labels[index]); interactionRef.current = null }
+  const handleCanvasDown = (event: PointerEvent<HTMLDivElement>) => { if ((event.target as HTMLElement).closest('[data-node]')) return; event.currentTarget.setPointerCapture(event.pointerId); interactionRef.current = { type: 'pan', moved: false, startX: event.clientX, startY: event.clientY, startPanX: pan.x, startPanY: pan.y } }
+  const handleCanvasMove = (event: PointerEvent<HTMLDivElement>) => { const interaction = interactionRef.current; if (!interaction || interaction.type !== 'pan') return; const dx = event.clientX - interaction.startX; const dy = event.clientY - interaction.startY; if (Math.hypot(dx, dy) > 3) interaction.moved = true; setPan({ x: interaction.startPanX + dx, y: interaction.startPanY + dy }) }
+  const handleCanvasUp = (event: PointerEvent<HTMLDivElement>) => { if (interactionRef.current?.type === 'pan') event.currentTarget.releasePointerCapture(event.pointerId); interactionRef.current = null }
+  const handleWheel = (event: WheelEvent<HTMLDivElement>) => { event.preventDefault(); setZoom((value) => Math.max(.65, Math.min(1.8, value - event.deltaY * .001))) }
+
+  return <div className="skill-map-board neural-map" ref={boardRef} onPointerDown={handleCanvasDown} onPointerMove={handleCanvasMove} onPointerUp={handleCanvasUp} onPointerCancel={handleCanvasUp} onWheel={handleWheel}><div className="neural-world" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>{points.map((point, index) => { const centerX = size.width / 2; const centerY = size.height / 2; const dx = point.x - centerX; const dy = point.y - centerY; return <div className="neural-line" key={`line-${index}`} style={{ left: `${centerX}px`, top: `${centerY}px`, width: `${Math.hypot(dx, dy)}px`, transform: `rotate(${Math.atan2(dy, dx) * 180 / Math.PI}deg)` }} /> })}<div className="neural-node neural-root" style={{ left: `${size.width / 2}px`, top: `${size.height / 2}px` }}><span className="node-kicker">目标领域</span><strong>{domain}</strong></div>{points.map((point, index) => <button className="neural-node neural-branch" data-node key={labels[index]} style={{ left: `${point.x}px`, top: `${point.y}px`, transform: 'translate(-50%, -50%)' }} onPointerDown={(event) => handleNodeDown(event, index)} onPointerMove={(event) => handleNodeMove(event, index)} onPointerUp={(event) => handleNodeUp(event, index)} onPointerCancel={(event) => { event.currentTarget.releasePointerCapture(event.pointerId); interactionRef.current = null }}><span className="node-pulse" /><strong>{labels[index]}</strong><small>点击编辑</small></button>)}</div><div className="neural-hint">拖动节点重新排列 · 滚轮缩放 · 拖动画布平移 · 点击节点编辑</div></div>
+}
+
 function App() {
   const [view, setView] = useState<View>('overview')
   const [showModal, setShowModal] = useState(false)
@@ -52,11 +108,6 @@ function App() {
   })
   const [editingNode, setEditingNode] = useState<{ index: number; label: string } | null>(null)
   const [editingNodeText, setEditingNodeText] = useState('')
-  const [neuralPositions, setNeuralPositions] = useState(defaultNeuralPositions)
-  const [draggingNode, setDraggingNode] = useState<number | null>(null)
-  const [neuralBoardSize, setNeuralBoardSize] = useState({ width: 0, height: 0 })
-  const neuralBoardRef = useRef<HTMLDivElement>(null)
-  const dragMovedRef = useRef(false)
   const [captureMode, setCaptureMode] = useState<CaptureMode>('quick')
   const [captureDomain, setCaptureDomain] = useState(learningDomains[0])
   const [captureText, setCaptureText] = useState('')
@@ -80,15 +131,6 @@ function App() {
   useEffect(() => {
     localStorage.setItem('growth-library:node-labels', JSON.stringify(nodeLabels))
   }, [nodeLabels])
-
-  useEffect(() => {
-    if (!neuralBoardRef.current) return
-    const updateBoardSize = () => { if (neuralBoardRef.current) { const rect = neuralBoardRef.current.getBoundingClientRect(); setNeuralBoardSize({ width: rect.width, height: rect.height }) } }
-    updateBoardSize()
-    const observer = new ResizeObserver(updateBoardSize)
-    observer.observe(neuralBoardRef.current)
-    return () => observer.disconnect()
-  }, [selectedDomain])
 
   const openCapture = (mode: CaptureMode) => {
     setCaptureMode(mode)
@@ -266,7 +308,7 @@ function App() {
             <div className="domain-detail-head"><button className="back-link" onClick={() => setSelectedDomain(null)}>← 我的领域</button><button className="add-button" onClick={() => openCapture('quick')}>+ 记录到{selectedDomain}</button></div>
             <div className="section-title"><div><span className="eyebrow">03 / SKILL MAP</span><h2>{selectedDomain}</h2></div><span className="domain-detail-progress">{domainCatalog.find((domain) => domain.name === selectedDomain)?.progress ?? 0}% 学习进展</span></div>
             <p className="view-intro">从真实记录中整理节点，不追求一开始就完整。先留下足迹，再慢慢长出自己的技能树。</p>
-            <div className="skill-map-board neural-map" ref={neuralBoardRef}>{(nodeLabels[selectedDomain] ?? []).map((_, index) => { const position = neuralPositions[index]; if (!position) return null; const dx = neuralBoardSize.width ? position.x / 100 * neuralBoardSize.width - neuralBoardSize.width / 2 : 0; const dy = neuralBoardSize.height ? position.y / 100 * neuralBoardSize.height - neuralBoardSize.height / 2 : 0; const length = neuralBoardSize.width ? Math.hypot(dx, dy) : 0; const angle = neuralBoardSize.width ? Math.atan2(dy, dx) * 180 / Math.PI : 0; return <div className="neural-line" key={`line-${index}`} style={{ width: `${length}px`, transform: `rotate(${angle}deg)` }} /> })}<div className="neural-node neural-root"><span className="node-kicker">目标领域</span><strong>{selectedDomain}</strong></div>{(nodeLabels[selectedDomain] ?? []).map((node, index) => { const position = neuralPositions[index]; if (!position) return null; const handlePointerMove = (event: PointerEvent<HTMLButtonElement>) => { if (draggingNode !== index || !neuralBoardRef.current) return; const rect = neuralBoardRef.current.getBoundingClientRect(); const nextX = Math.max(7, Math.min(93, ((event.clientX - rect.left) / rect.width) * 100)); const nextY = Math.max(10, Math.min(90, ((event.clientY - rect.top) / rect.height) * 100)); if (Math.abs(nextX - position.x) > 1 || Math.abs(nextY - position.y) > 1) dragMovedRef.current = true; setNeuralPositions((positions) => positions.map((item, itemIndex) => itemIndex === index ? { x: nextX, y: nextY } : item)); }; return <button className="neural-node neural-branch" key={node} style={{ left: `${position.x}%`, top: `${position.y}%`, transform: 'translate(-50%, -50%)' }} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); dragMovedRef.current = false; setDraggingNode(index) }} onPointerMove={handlePointerMove} onPointerUp={(event) => { event.currentTarget.releasePointerCapture(event.pointerId); setDraggingNode(null) }} onPointerCancel={() => setDraggingNode(null)} onClick={() => { if (!dragMovedRef.current) { setEditingNode({ index, label: node }); setEditingNodeText(node) } }}><span className="node-pulse" /><strong>{node}</strong><small>点击编辑</small></button> })}<div className="neural-hint">系统先给你一张目标草图，拖动节点调整关系，点击节点编辑名称</div></div>
+            <ForceSkillMap key={selectedDomain} domain={selectedDomain} labels={nodeLabels[selectedDomain] ?? []} onEdit={(index, label) => { setEditingNode({ index, label }); setEditingNodeText(label) }} />
             <div className="domain-note-strip"><span>本领域笔记</span><strong>{inboxRecords.filter((record) => (record.domain ?? '未选择领域') === selectedDomain).length} 条</strong><button className="plain-link" onClick={() => setView('inbox')}>查看记录 →</button></div>
           </section>}
 
