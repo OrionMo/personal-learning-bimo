@@ -100,7 +100,7 @@ function App() {
     const defaults = Object.fromEntries(Object.entries(recommendedSkillNodes).map(([domain, labels]) => [domain, labels.map(() => 112)]))
     try { return { ...defaults, ...JSON.parse(localStorage.getItem('growth-library:node-sizes') ?? '{}') as Record<string, number[]> } } catch { return defaults }
   })
-  const [editingNode, setEditingNode] = useState<{ index: number; label: string; color: string } | null>(null)
+  const [editingNode, setEditingNode] = useState<{ index: number; label: string; color: string; isNew?: boolean } | null>(null)
   const [editingNodeText, setEditingNodeText] = useState('')
   const [pendingDeleteNode, setPendingDeleteNode] = useState<{ index: number; label: string } | null>(null)
   const [captureMode, setCaptureMode] = useState<CaptureMode>('quick')
@@ -169,8 +169,17 @@ function App() {
     const nextColor = nodeColorPalette[nextIndex % nodeColorPalette.length]
     setNodeColors((colors) => ({ ...colors, [selectedDomain]: [...(colors[selectedDomain] ?? []), nextColor] }))
     setNodeSizes((sizes) => ({ ...sizes, [selectedDomain]: [...(sizes[selectedDomain] ?? []), 112] }))
-    setEditingNode({ index: nextIndex, label: nextLabel, color: nextColor })
+    setEditingNode({ index: nextIndex, label: nextLabel, color: nextColor, isNew: true })
     setEditingNodeText(nextLabel)
+  }
+
+  const discardEditingNode = () => {
+    if (editingNode?.isNew && selectedDomain) {
+      setNodeLabels((labels) => ({ ...labels, [selectedDomain]: (labels[selectedDomain] ?? []).filter((_, valueIndex) => valueIndex !== editingNode.index) }))
+      setNodeColors((colors) => ({ ...colors, [selectedDomain]: (colors[selectedDomain] ?? []).filter((_, valueIndex) => valueIndex !== editingNode.index) }))
+      setNodeSizes((sizes) => ({ ...sizes, [selectedDomain]: (sizes[selectedDomain] ?? []).filter((_, valueIndex) => valueIndex !== editingNode.index) }))
+    }
+    setEditingNode(null)
   }
 
   const deleteSkillNode = (index: number) => {
@@ -367,7 +376,7 @@ function App() {
         <button className="detail-done-button" onClick={() => setSelectedCard(null)}>看完了</button>
       </article></div>}
 
-      {editingNode && <div className="modal-backdrop" onClick={() => setEditingNode(null)}><div className="node-edit-modal" onClick={(event) => event.stopPropagation()}><span className="eyebrow">EDIT NODE</span><h2>编辑技能节点</h2><p>把它改成你真正想发展的能力方向。</p><input value={editingNodeText} onChange={(event) => setEditingNodeText(event.target.value)} autoFocus onKeyDown={(event) => { if (event.key === 'Enter') { const nextText = editingNodeText.trim(); if (nextText && selectedDomain && editingNode) { setNodeLabels((labels) => ({ ...labels, [selectedDomain]: labels[selectedDomain].map((label, index) => index === editingNode.index ? nextText : label) })); setNodeColors((colors) => ({ ...colors, [selectedDomain]: (colors[selectedDomain] ?? []).map((color, index) => index === editingNode.index ? editingNode.color : color) })); setEditingNode(null) } } }} /><div className="node-color-control"><span>节点颜色</span><div className="node-color-options">{nodeColorPalette.map((color) => <button className={editingNode.color === color ? 'selected' : ''} key={color} style={{ background: color }} aria-label={`选择颜色 ${color}`} onClick={() => setEditingNode((node) => node ? { ...node, color } : node)} />)}</div></div><div className="node-edit-actions"><button className="plain-link" onClick={() => setEditingNode(null)}>取消</button><button className="add-button" onClick={() => { const nextText = editingNodeText.trim(); if (!nextText || !selectedDomain || !editingNode) return; setNodeLabels((labels) => ({ ...labels, [selectedDomain]: labels[selectedDomain].map((label, index) => index === editingNode.index ? nextText : label) })); setNodeColors((colors) => ({ ...colors, [selectedDomain]: (colors[selectedDomain] ?? []).map((color, index) => index === editingNode.index ? editingNode.color : color) })); setEditingNode(null) }}>保存节点</button></div></div></div>}
+      {editingNode && <div className="modal-backdrop" onClick={discardEditingNode}><div className="node-edit-modal" onClick={(event) => event.stopPropagation()}><span className="eyebrow">EDIT NODE</span><h2>编辑技能节点</h2><p>把它改成你真正想发展的能力方向。</p><input value={editingNodeText} onChange={(event) => setEditingNodeText(event.target.value)} autoFocus onKeyDown={(event) => { if (event.key === 'Enter') { const nextText = editingNodeText.trim(); if (nextText && selectedDomain && editingNode) { setNodeLabels((labels) => ({ ...labels, [selectedDomain]: labels[selectedDomain].map((label, index) => index === editingNode.index ? nextText : label) })); setNodeColors((colors) => ({ ...colors, [selectedDomain]: (colors[selectedDomain] ?? []).map((color, index) => index === editingNode.index ? editingNode.color : color) })); setEditingNode(null) } } }} /><div className="node-color-control"><span>节点颜色</span><div className="node-color-options">{nodeColorPalette.map((color) => <button className={editingNode.color === color ? 'selected' : ''} key={color} style={{ background: color }} aria-label={`选择颜色 ${color}`} onClick={() => setEditingNode((node) => node ? { ...node, color } : node)} />)}</div></div><div className="node-edit-actions"><button className="plain-link" onClick={discardEditingNode}>取消</button><button className="add-button" onClick={() => { const nextText = editingNodeText.trim(); if (!nextText || !selectedDomain || !editingNode) return; setNodeLabels((labels) => ({ ...labels, [selectedDomain]: labels[selectedDomain].map((label, index) => index === editingNode.index ? nextText : label) })); setNodeColors((colors) => ({ ...colors, [selectedDomain]: (colors[selectedDomain] ?? []).map((color, index) => index === editingNode.index ? editingNode.color : color) })); setEditingNode(null) }}>保存节点</button></div></div></div>}
 
       {pendingDeleteNode && <div className="modal-backdrop" onClick={() => setPendingDeleteNode(null)}><div className="node-edit-modal delete-confirm-modal" onClick={(event) => event.stopPropagation()}><span className="eyebrow">DELETE NODE</span><h2>删除技能节点</h2><p>确定删除“{pendingDeleteNode.label}”吗？删除后可以重新添加，但当前节点内容不会保留。</p><div className="node-edit-actions"><button className="plain-link" onClick={() => setPendingDeleteNode(null)}>取消</button><button className="delete-confirm-button" onClick={confirmDeleteSkillNode}>删除节点</button></div></div></div>}
 
