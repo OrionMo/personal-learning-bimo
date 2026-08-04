@@ -174,11 +174,7 @@ function App() {
   }
 
   const discardEditingNode = () => {
-    if (editingNode?.isNew && selectedDomain) {
-      setNodeLabels((labels) => ({ ...labels, [selectedDomain]: (labels[selectedDomain] ?? []).filter((_, valueIndex) => valueIndex !== editingNode.index) }))
-      setNodeColors((colors) => ({ ...colors, [selectedDomain]: (colors[selectedDomain] ?? []).filter((_, valueIndex) => valueIndex !== editingNode.index) }))
-      setNodeSizes((sizes) => ({ ...sizes, [selectedDomain]: (sizes[selectedDomain] ?? []).filter((_, valueIndex) => valueIndex !== editingNode.index) }))
-    }
+    // 取消只关闭编辑弹窗，保留新节点及其当前布局位置。
     setEditingNode(null)
   }
 
