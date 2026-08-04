@@ -65,16 +65,27 @@ function ForceSkillMap({ domain, labels, onEdit }: { domain: string; labels: str
 
   useEffect(() => {
     let frame = 0
-    const tick = () => {
+    const tick = (time = 0) => {
       setPoints((current) => {
         if (!current.length) return current
         const centerX = size.width / 2 || 420
         const centerY = size.height / 2 || 260
         return current.map((point, index) => {
           if (interactionRef.current?.type === 'node' && interactionRef.current.index === index) return point
-          let fx = (centerX - point.x) * .0009
-          let fy = (centerY - point.y) * .0009
-          current.forEach((other, otherIndex) => { if (index === otherIndex) return; const dx = point.x - other.x; const dy = point.y - other.y; const distance = Math.max(Math.hypot(dx, dy), 26); const force = 1150 / (distance * distance); fx += (dx / distance) * force; fy += (dy / distance) * force })
+          const centerDx = centerX - point.x
+          const centerDy = centerY - point.y
+          const centerDistance = Math.max(Math.hypot(centerDx, centerDy), 1)
+          const targetRadius = Math.min(centerX, centerY) * .7
+          const springForce = (targetRadius - centerDistance) * .0022
+          let fx = (centerDx / centerDistance) * springForce
+          let fy = (centerDy / centerDistance) * springForce
+          const rootCollisionDistance = 150 / 2 + 112 / 2 + 18
+          if (centerDistance < rootCollisionDistance) { const push = (rootCollisionDistance - centerDistance) * .08; fx -= (centerDx / centerDistance) * push; fy -= (centerDy / centerDistance) * push }
+          current.forEach((other, otherIndex) => { if (index === otherIndex) return; const dx = point.x - other.x; const dy = point.y - other.y; const distance = Math.max(Math.hypot(dx, dy), 1); const directionX = dx / distance; const directionY = dy / distance; const collisionDistance = 112 + 22; const overlap = collisionDistance - distance; if (overlap > 0) { const collisionForce = overlap * .085; fx += directionX * collisionForce; fy += directionY * collisionForce } else { const softForce = 650 / (distance * distance); fx += directionX * softForce; fy += directionY * softForce } })
+          const floatX = Math.sin(time * .0011 + index * 1.7) * .012
+          const floatY = Math.cos(time * .0013 + index * 1.3) * .012
+          fx += floatX
+          fy += floatY
           const vx = (point.vx + fx) * .965
           const vy = (point.vy + fy) * .965
           return { x: Math.max(74, Math.min(size.width - 74 || 766, point.x + vx)), y: Math.max(74, Math.min(size.height - 74 || 446, point.y + vy)), vx, vy }
