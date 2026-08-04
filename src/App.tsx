@@ -58,40 +58,10 @@ function ForceSkillMap({ domain, labels, onEdit }: { domain: string; labels: str
     const centerX = size.width / 2 || 420
     const centerY = size.height / 2 || 260
     const radius = Math.min(centerX, centerY) * .68
-    setPoints(labels.map((_, index) => { const angle = (-Math.PI / 2) + index * (Math.PI * 2 / Math.max(labels.length, 1)); return { x: centerX + Math.cos(angle) * radius, y: centerY + Math.sin(angle) * radius, vx: 0, vy: 0 } }))
+    setPoints(labels.map((_, index) => { const angle = (-Math.PI / 2) + index * (Math.PI * 2 / Math.max(labels.length, 1)); return { x: centerX + Math.cos(angle) * radius, y: centerY + Math.sin(angle) * radius, vx: 0, vy: 0, fixed: true } }))
     setZoom(1)
     setPan({ x: 0, y: 0 })
   }, [domain, labels.join('|'), size.width, size.height])
-
-  useEffect(() => {
-    let frame = 0
-    const tick = () => {
-      setPoints((current) => {
-        if (!current.length) return current
-        const centerX = size.width / 2 || 420
-        const centerY = size.height / 2 || 260
-        return current.map((point, index) => {
-          if (point.fixed || (interactionRef.current?.type === 'node' && interactionRef.current.index === index)) return point
-          const centerDx = centerX - point.x
-          const centerDy = centerY - point.y
-          const centerDistance = Math.max(Math.hypot(centerDx, centerDy), 1)
-          const targetRadius = Math.min(centerX, centerY) * .7
-          const springForce = (targetRadius - centerDistance) * .0022
-          let fx = (centerDx / centerDistance) * springForce
-          let fy = (centerDy / centerDistance) * springForce
-          const rootCollisionDistance = 150 / 2 + 112 / 2 + 18
-          if (centerDistance < rootCollisionDistance) { const push = (rootCollisionDistance - centerDistance) * .08; fx -= (centerDx / centerDistance) * push; fy -= (centerDy / centerDistance) * push }
-          current.forEach((other, otherIndex) => { if (index === otherIndex) return; const dx = point.x - other.x; const dy = point.y - other.y; const distance = Math.max(Math.hypot(dx, dy), 1); const directionX = dx / distance; const directionY = dy / distance; const collisionDistance = 112 + 22; const overlap = collisionDistance - distance; if (overlap > 0) { const collisionForce = overlap * .085; fx += directionX * collisionForce; fy += directionY * collisionForce } else { const softForce = 650 / (distance * distance); fx += directionX * softForce; fy += directionY * softForce } })
-          const vx = (point.vx + fx) * .965
-          const vy = (point.vy + fy) * .965
-          return { x: Math.max(74, Math.min(size.width - 74 || 766, point.x + vx)), y: Math.max(74, Math.min(size.height - 74 || 446, point.y + vy)), vx, vy }
-        })
-      })
-      frame = requestAnimationFrame(tick)
-    }
-    frame = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(frame)
-  }, [size.width, size.height])
 
   const worldPoint = (event: PointerEvent<HTMLElement>) => { const rect = boardRef.current?.getBoundingClientRect(); if (!rect) return { x: 0, y: 0 }; return { x: (event.clientX - rect.left - rect.width / 2 - pan.x) / zoom + rect.width / 2, y: (event.clientY - rect.top - rect.height / 2 - pan.y) / zoom + rect.height / 2 } }
   const handleNodeDown = (event: PointerEvent<HTMLButtonElement>, index: number) => { event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); interactionRef.current = { type: 'node', index, moved: false, startX: event.clientX, startY: event.clientY, startPanX: pan.x, startPanY: pan.y }; setPoints((current) => current.map((point, pointIndex) => pointIndex === index ? { ...point, vx: 0, vy: 0 } : point)) }
