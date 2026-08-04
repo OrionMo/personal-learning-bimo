@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent, type ClipboardEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent, type PointerEvent } from 'react'
 
 type View = 'overview' | 'cards' | 'tree' | 'inbox'
 type CaptureMode = 'quick' | 'reflect'
@@ -22,6 +22,13 @@ const recommendedSkillNodes: Record<string, string[]> = {
   '职场成长': ['工作方法', '项目协作', '反馈沟通', '职业规划'],
 }
 
+const defaultNeuralPositions = [
+  { x: 18, y: 14 },
+  { x: 84, y: 22 },
+  { x: 14, y: 78 },
+  { x: 75, y: 86 },
+]
+
 const navItems: { id: View; label: string; hint: string }[] = [
   { id: 'overview', label: '今日总览', hint: 'OVERVIEW' },
   { id: 'cards', label: '学习卡片', hint: 'LIBRARY' },
@@ -40,6 +47,11 @@ function App() {
   const [showModal, setShowModal] = useState(false)
   const [selectedCard, setSelectedCard] = useState<(typeof cards)[number] | null>(null)
   const [selectedDomain, setSelectedDomain] = useState<string | null>(null)
+  const [neuralPositions, setNeuralPositions] = useState(defaultNeuralPositions)
+  const [draggingNode, setDraggingNode] = useState<number | null>(null)
+  const [neuralBoardSize, setNeuralBoardSize] = useState({ width: 0, height: 0 })
+  const neuralBoardRef = useRef<HTMLDivElement>(null)
+  const dragMovedRef = useRef(false)
   const [captureMode, setCaptureMode] = useState<CaptureMode>('quick')
   const [captureDomain, setCaptureDomain] = useState(learningDomains[0])
   const [captureText, setCaptureText] = useState('')
@@ -59,6 +71,15 @@ function App() {
   useEffect(() => {
     localStorage.setItem('growth-library:inbox', JSON.stringify(inboxRecords))
   }, [inboxRecords])
+
+  useEffect(() => {
+    if (!neuralBoardRef.current) return
+    const updateBoardSize = () => { if (neuralBoardRef.current) { const rect = neuralBoardRef.current.getBoundingClientRect(); setNeuralBoardSize({ width: rect.width, height: rect.height }) } }
+    updateBoardSize()
+    const observer = new ResizeObserver(updateBoardSize)
+    observer.observe(neuralBoardRef.current)
+    return () => observer.disconnect()
+  }, [selectedDomain])
 
   const openCapture = (mode: CaptureMode) => {
     setCaptureMode(mode)
@@ -236,7 +257,7 @@ function App() {
             <div className="domain-detail-head"><button className="back-link" onClick={() => setSelectedDomain(null)}>← 我的领域</button><button className="add-button" onClick={() => openCapture('quick')}>+ 记录到{selectedDomain}</button></div>
             <div className="section-title"><div><span className="eyebrow">03 / SKILL MAP</span><h2>{selectedDomain}</h2></div><span className="domain-detail-progress">{domainCatalog.find((domain) => domain.name === selectedDomain)?.progress ?? 0}% 学习进展</span></div>
             <p className="view-intro">从真实记录中整理节点，不追求一开始就完整。先留下足迹，再慢慢长出自己的技能树。</p>
-            <div className="skill-map-board neural-map"><div className="neural-line line-one" /><div className="neural-line line-two" /><div className="neural-line line-three" /><div className="neural-line line-four" /><div className="neural-node neural-root"><span className="node-kicker">目标领域</span><strong>{selectedDomain}</strong></div>{(recommendedSkillNodes[selectedDomain] ?? []).map((node, index) => <button className={`neural-node neural-branch branch-${index + 1}`} key={node} onClick={() => window.alert('这是系统建议节点，确认目标后即可加入技能树')}><span className="node-pulse" /><strong>{node}</strong><small>建议方向</small></button>)}<div className="neural-hint">系统先给你一张目标草图，确认后再开始积累</div></div>
+            <div className="skill-map-board neural-map" ref={neuralBoardRef}>{(recommendedSkillNodes[selectedDomain] ?? []).map((_, index) => { const position = neuralPositions[index]; if (!position) return null; const dx = neuralBoardSize.width ? position.x / 100 * neuralBoardSize.width - neuralBoardSize.width / 2 : 0; const dy = neuralBoardSize.height ? position.y / 100 * neuralBoardSize.height - neuralBoardSize.height / 2 : 0; const length = neuralBoardSize.width ? Math.hypot(dx, dy) : 0; const angle = neuralBoardSize.width ? Math.atan2(dy, dx) * 180 / Math.PI : 0; return <div className="neural-line" key={`line-${index}`} style={{ width: `${length}px`, transform: `rotate(${angle}deg)` }} /> })}<div className="neural-node neural-root"><span className="node-kicker">目标领域</span><strong>{selectedDomain}</strong></div>{(recommendedSkillNodes[selectedDomain] ?? []).map((node, index) => { const position = neuralPositions[index]; if (!position) return null; const handlePointerMove = (event: PointerEvent<HTMLButtonElement>) => { if (draggingNode !== index || !neuralBoardRef.current) return; const rect = neuralBoardRef.current.getBoundingClientRect(); const nextX = Math.max(7, Math.min(93, ((event.clientX - rect.left) / rect.width) * 100)); const nextY = Math.max(10, Math.min(90, ((event.clientY - rect.top) / rect.height) * 100)); if (Math.abs(nextX - position.x) > 1 || Math.abs(nextY - position.y) > 1) dragMovedRef.current = true; setNeuralPositions((positions) => positions.map((item, itemIndex) => itemIndex === index ? { x: nextX, y: nextY } : item)); }; return <button className="neural-node neural-branch" key={node} style={{ left: `${position.x}%`, top: `${position.y}%`, transform: 'translate(-50%, -50%)' }} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); dragMovedRef.current = false; setDraggingNode(index) }} onPointerMove={handlePointerMove} onPointerUp={(event) => { event.currentTarget.releasePointerCapture(event.pointerId); setDraggingNode(null) }} onPointerCancel={() => setDraggingNode(null)} onClick={() => { if (!dragMovedRef.current) window.alert('这是系统建议节点，确认目标后即可加入技能树') }}><span className="node-pulse" /><strong>{node}</strong><small>建议方向</small></button> })}<div className="neural-hint">系统先给你一张目标草图，拖动节点调整关系，确认后再开始积累</div></div>
             <div className="domain-note-strip"><span>本领域笔记</span><strong>{inboxRecords.filter((record) => (record.domain ?? '未选择领域') === selectedDomain).length} 条</strong><button className="plain-link" onClick={() => setView('inbox')}>查看记录 →</button></div>
           </section>}
 
