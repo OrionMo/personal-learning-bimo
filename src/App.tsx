@@ -35,7 +35,7 @@ const cards = [
   { tag: '表达社交', title: '把复杂的事情讲清楚，是一种可以训练的能力', status: '能讲', tone: 'blue', learned: '表达不是把所有信息都说出来，而是先找到对方最需要理解的那一个核心。', skillNode: '表达社交 / 结构化表达', understanding: '先讲结论和价值，再补充必要细节，更容易让别人听懂。', useCase: '汇报、面试或向别人介绍自己的项目时，先讲结论和价值。', related: '项目介绍模板 · 三句话表达练习', nextStep: '用三句话重新介绍一个自己做过的项目。' },
 ]
 
-type ForcePoint = { x: number; y: number; vx: number; vy: number }
+type ForcePoint = { x: number; y: number; vx: number; vy: number; fixed?: boolean }
 
 function ForceSkillMap({ domain, labels, onEdit }: { domain: string; labels: string[]; onEdit: (index: number, label: string) => void }) {
   const boardRef = useRef<HTMLDivElement>(null)
@@ -65,13 +65,13 @@ function ForceSkillMap({ domain, labels, onEdit }: { domain: string; labels: str
 
   useEffect(() => {
     let frame = 0
-    const tick = (time = 0) => {
+    const tick = () => {
       setPoints((current) => {
         if (!current.length) return current
         const centerX = size.width / 2 || 420
         const centerY = size.height / 2 || 260
         return current.map((point, index) => {
-          if (interactionRef.current?.type === 'node' && interactionRef.current.index === index) return point
+          if (point.fixed || (interactionRef.current?.type === 'node' && interactionRef.current.index === index)) return point
           const centerDx = centerX - point.x
           const centerDy = centerY - point.y
           const centerDistance = Math.max(Math.hypot(centerDx, centerDy), 1)
@@ -82,10 +82,6 @@ function ForceSkillMap({ domain, labels, onEdit }: { domain: string; labels: str
           const rootCollisionDistance = 150 / 2 + 112 / 2 + 18
           if (centerDistance < rootCollisionDistance) { const push = (rootCollisionDistance - centerDistance) * .08; fx -= (centerDx / centerDistance) * push; fy -= (centerDy / centerDistance) * push }
           current.forEach((other, otherIndex) => { if (index === otherIndex) return; const dx = point.x - other.x; const dy = point.y - other.y; const distance = Math.max(Math.hypot(dx, dy), 1); const directionX = dx / distance; const directionY = dy / distance; const collisionDistance = 112 + 22; const overlap = collisionDistance - distance; if (overlap > 0) { const collisionForce = overlap * .085; fx += directionX * collisionForce; fy += directionY * collisionForce } else { const softForce = 650 / (distance * distance); fx += directionX * softForce; fy += directionY * softForce } })
-          const floatX = Math.sin(time * .0011 + index * 1.7) * .012
-          const floatY = Math.cos(time * .0013 + index * 1.3) * .012
-          fx += floatX
-          fy += floatY
           const vx = (point.vx + fx) * .965
           const vy = (point.vy + fy) * .965
           return { x: Math.max(74, Math.min(size.width - 74 || 766, point.x + vx)), y: Math.max(74, Math.min(size.height - 74 || 446, point.y + vy)), vx, vy }
@@ -100,7 +96,7 @@ function ForceSkillMap({ domain, labels, onEdit }: { domain: string; labels: str
   const worldPoint = (event: PointerEvent<HTMLElement>) => { const rect = boardRef.current?.getBoundingClientRect(); if (!rect) return { x: 0, y: 0 }; return { x: (event.clientX - rect.left - rect.width / 2 - pan.x) / zoom + rect.width / 2, y: (event.clientY - rect.top - rect.height / 2 - pan.y) / zoom + rect.height / 2 } }
   const handleNodeDown = (event: PointerEvent<HTMLButtonElement>, index: number) => { event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); interactionRef.current = { type: 'node', index, moved: false, startX: event.clientX, startY: event.clientY, startPanX: pan.x, startPanY: pan.y }; setPoints((current) => current.map((point, pointIndex) => pointIndex === index ? { ...point, vx: 0, vy: 0 } : point)) }
   const handleNodeMove = (event: PointerEvent<HTMLButtonElement>, index: number) => { const interaction = interactionRef.current; if (!interaction || interaction.type !== 'node' || interaction.index !== index) return; const point = worldPoint(event); if (Math.hypot(event.clientX - interaction.startX, event.clientY - interaction.startY) > 4) interaction.moved = true; setPoints((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, x: point.x, y: point.y, vx: 0, vy: 0 } : item)) }
-  const handleNodeUp = (event: PointerEvent<HTMLButtonElement>, index: number) => { const interaction = interactionRef.current; event.currentTarget.releasePointerCapture(event.pointerId); if (interaction?.type === 'node' && interaction.index === index && !interaction.moved) onEdit(index, labels[index]); interactionRef.current = null }
+  const handleNodeUp = (event: PointerEvent<HTMLButtonElement>, index: number) => { const interaction = interactionRef.current; event.currentTarget.releasePointerCapture(event.pointerId); if (interaction?.type === 'node' && interaction.index === index) { setPoints((current) => current.map((point, pointIndex) => pointIndex === index ? { ...point, fixed: true } : point)); if (!interaction.moved) onEdit(index, labels[index]) } interactionRef.current = null }
   const handleCanvasDown = (event: PointerEvent<HTMLDivElement>) => { if ((event.target as HTMLElement).closest('[data-node]')) return; event.currentTarget.setPointerCapture(event.pointerId); interactionRef.current = { type: 'pan', moved: false, startX: event.clientX, startY: event.clientY, startPanX: pan.x, startPanY: pan.y } }
   const handleCanvasMove = (event: PointerEvent<HTMLDivElement>) => { const interaction = interactionRef.current; if (!interaction || interaction.type !== 'pan') return; const dx = event.clientX - interaction.startX; const dy = event.clientY - interaction.startY; if (Math.hypot(dx, dy) > 3) interaction.moved = true; setPan({ x: interaction.startPanX + dx, y: interaction.startPanY + dy }) }
   const handleCanvasUp = (event: PointerEvent<HTMLDivElement>) => { if (interactionRef.current?.type === 'pan') event.currentTarget.releasePointerCapture(event.pointerId); interactionRef.current = null }
