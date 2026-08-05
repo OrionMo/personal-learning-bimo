@@ -40,7 +40,7 @@ const cards = [
 type ForcePoint = { x: number; y: number; vx: number; vy: number; fixed?: boolean }
 type ResizeDirection = { x: number; y: number }
 
-function ForceSkillMap({ domain, labels, colors, sizes, parents, onEdit, onAdd, onDelete, onResize }: { domain: string; labels: string[]; colors: string[]; sizes: number[]; parents: (number | null)[]; onEdit: (index: number, label: string, color: string) => void; onAdd: (parentIndex?: number) => void; onDelete: (index: number) => void; onResize: (index: number, size: number) => void }) {
+function ForceSkillMap({ domain, labels, colors, sizes, parents, nodeIds, onEdit, onAdd, onDelete, onResize }: { domain: string; labels: string[]; colors: string[]; sizes: number[]; parents: (number | null)[]; nodeIds: string[]; onEdit: (index: number, label: string, color: string) => void; onAdd: (parentIndex?: number) => void; onDelete: (index: number) => void; onResize: (index: number, size: number) => void }) {
   const boardRef = useRef<HTMLDivElement>(null)
   const interactionRef = useRef<{ type: 'node' | 'pan'; index?: number; moved: boolean; startX: number; startY: number; startPanX: number; startPanY: number } | null>(null)
   const resizeRef = useRef<{ index: number; startX: number; startY: number; startSize: number; direction: ResizeDirection } | null>(null)
@@ -49,6 +49,7 @@ function ForceSkillMap({ domain, labels, colors, sizes, parents, onEdit, onAdd, 
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [points, setPoints] = useState<ForcePoint[]>([])
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+  const previousNodeIdsRef = useRef<string[]>(nodeIds)
 
   useEffect(() => {
     if (!boardRef.current) return
@@ -64,16 +65,23 @@ function ForceSkillMap({ domain, labels, colors, sizes, parents, onEdit, onAdd, 
     const centerY = size.height / 2 || 260
     const radius = Math.min(centerX, centerY) * .68
     setPoints(labels.map((_, index) => { const angle = (-Math.PI / 2) + index * (Math.PI * 2 / Math.max(labels.length, 1)); return { x: centerX + Math.cos(angle) * radius, y: centerY + Math.sin(angle) * radius, vx: 0, vy: 0, fixed: true } }))
+    previousNodeIdsRef.current = nodeIds
     setZoom(1)
     setPan({ x: 0, y: 0 })
   }, [domain, size.width, size.height])
 
   useEffect(() => {
     setPoints((current) => {
-      if (labels.length <= current.length) return labels.length === current.length ? current : current.slice(0, labels.length)
+      const previousNodeIds = previousNodeIdsRef.current
+      if (nodeIds.length === previousNodeIds.length) return current
+      if (nodeIds.length < previousNodeIds.length) {
+        const nextPoints = nodeIds.map((nodeId) => current[previousNodeIds.indexOf(nodeId)]).filter(Boolean)
+        previousNodeIdsRef.current = nodeIds
+        return nextPoints
+      }
       const centerX = size.width / 2 || 420
       const centerY = size.height / 2 || 260
-      const newIndex = labels.length - 1
+      const newIndex = nodeIds.length - 1
       const parentIndex = newIndex > 0 ? parents[newIndex] : null
       const parent = parentIndex !== null && parentIndex !== undefined ? current[parentIndex] : undefined
       const base = parent ?? { x: centerX, y: centerY, vx: 0, vy: 0 }
@@ -105,9 +113,10 @@ function ForceSkillMap({ domain, labels, colors, sizes, parents, onEdit, onAdd, 
         const bestClearance = current.reduce((minimum, point, index) => Math.min(minimum, Math.hypot(best.x - point.x, best.y - point.y) - newSize / 2 - (sizes[index] ?? 112) / 2), Number.POSITIVE_INFINITY)
         return clearance > bestClearance ? candidate : best
       })
+      previousNodeIdsRef.current = nodeIds
       return [...current, { x: position.x, y: position.y, vx: 0, vy: 0, fixed: true }]
     })
-  }, [labels.length, parents, size.height, size.width, sizes])
+  }, [nodeIds, parents, size.height, size.width, sizes])
 
   const worldPoint = (event: PointerEvent<HTMLElement>) => { const rect = boardRef.current?.getBoundingClientRect(); if (!rect) return { x: 0, y: 0 }; return { x: (event.clientX - rect.left - rect.width / 2 - pan.x) / zoom + rect.width / 2, y: (event.clientY - rect.top - rect.height / 2 - pan.y) / zoom + rect.height / 2 } }
   const handleNodeDown = (event: PointerEvent<HTMLElement>, index: number) => { event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); interactionRef.current = { type: 'node', index, moved: false, startX: event.clientX, startY: event.clientY, startPanX: pan.x, startPanY: pan.y }; setPoints((current) => current.map((point, pointIndex) => pointIndex === index ? { ...point, vx: 0, vy: 0 } : point)) }
@@ -122,7 +131,7 @@ function ForceSkillMap({ domain, labels, colors, sizes, parents, onEdit, onAdd, 
   const handleCanvasUp = (event: PointerEvent<HTMLDivElement>) => { if (interactionRef.current?.type === 'pan') event.currentTarget.releasePointerCapture(event.pointerId); interactionRef.current = null }
   const handleWheel = (event: WheelEvent<HTMLDivElement>) => { event.preventDefault(); event.stopPropagation(); setZoom((value) => Math.max(.65, Math.min(1.8, value - event.deltaY * .001))) }
 
-  return <div className="skill-map-board neural-map" ref={boardRef} onPointerDown={handleCanvasDown} onPointerMove={handleCanvasMove} onPointerUp={handleCanvasUp} onPointerCancel={handleCanvasUp} onWheelCapture={handleWheel}><div className="mindmap-toolbar" onPointerDown={(event) => event.stopPropagation()}><button onClick={() => onAdd(selectedIndex ?? undefined)}>＋ 添加节点</button><span>{Math.round(zoom * 100)}%</span></div><div className="neural-world" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>{points.map((point, index) => { const parentIndex = parents[index]; const parent = parentIndex !== null && parentIndex !== undefined ? points[parentIndex] : undefined; const centerX = parent?.x ?? size.width / 2; const centerY = parent?.y ?? size.height / 2; const dx = point.x - centerX; const dy = point.y - centerY; return <div className="neural-line" key={`line-${index}`} style={{ left: `${centerX}px`, top: `${centerY}px`, width: `${Math.hypot(dx, dy)}px`, transform: `rotate(${Math.atan2(dy, dx) * 180 / Math.PI}deg)` }} /> })}<div className="neural-node neural-root" style={{ left: `${size.width / 2}px`, top: `${size.height / 2}px` }}><span className="node-kicker">目标领域</span><strong>{domain}</strong></div>{points.map((point, index) => { const selected = selectedIndex === index; const nodeSize = sizes[index] ?? 112; return <div className={`neural-node neural-branch ${selected ? 'is-selected' : ''}`} data-node key={`${labels[index]}-${index}`} style={{ left: `${point.x}px`, top: `${point.y}px`, width: `${nodeSize}px`, height: `${nodeSize}px`, background: colors[index] ?? nodeColorPalette[0], transform: 'translate(-50%, -50%)' }} onPointerDown={(event) => handleNodeDown(event, index)} onPointerMove={(event) => handleNodeMove(event, index)} onPointerUp={(event) => handleNodeUp(event, index)} onPointerCancel={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); interactionRef.current = null }} onDoubleClick={() => onEdit(index, labels[index], colors[index] ?? nodeColorPalette[0])} onKeyDown={(event) => handleNodeKeyDown(event, index)} tabIndex={0} role="button"><strong>{labels[index]}</strong><small>{selected ? '长按右下角圆点调整' : '点击选中'}</small>{selected && <><span className="node-action-add" role="button" tabIndex={0} aria-label="从此节点添加节点" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => { event.stopPropagation(); onAdd(index) }}>＋</span><span className="node-handles" aria-label="调整节点大小"><span className="node-handle handle-se" aria-label="拖动调整节点大小" onPointerDown={(event) => handleResizeDown(event, index, { x: 1, y: 1 })} onPointerMove={handleResizeMove} onPointerUp={handleResizeUp} onPointerCancel={handleResizeUp} /></span></>}</div> })}</div><div className="neural-hint">单击选中 · 点击节点右上角小圆点添加子节点 · 长按拖动右下角圆点调整大小 · 双击编辑文字 · 按 Backspace 删除节点 · 拖动节点重新排列 · 滚轮缩放 · 拖动画布平移</div></div>
+  return <div className="skill-map-board neural-map" ref={boardRef} onPointerDown={handleCanvasDown} onPointerMove={handleCanvasMove} onPointerUp={handleCanvasUp} onPointerCancel={handleCanvasUp} onWheelCapture={handleWheel}><div className="mindmap-toolbar" onPointerDown={(event) => event.stopPropagation()}><button onClick={() => onAdd(selectedIndex ?? undefined)}>＋ 添加节点</button><span>{Math.round(zoom * 100)}%</span></div><div className="neural-world" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>{points.map((point, index) => { const parentIndex = parents[index]; const parent = parentIndex !== null && parentIndex !== undefined ? points[parentIndex] : undefined; const centerX = parent?.x ?? size.width / 2; const centerY = parent?.y ?? size.height / 2; const dx = point.x - centerX; const dy = point.y - centerY; return <div className="neural-line" key={`line-${nodeIds[index] ?? index}`} style={{ left: `${centerX}px`, top: `${centerY}px`, width: `${Math.hypot(dx, dy)}px`, transform: `rotate(${Math.atan2(dy, dx) * 180 / Math.PI}deg)` }} /> })}<div className="neural-node neural-root" style={{ left: `${size.width / 2}px`, top: `${size.height / 2}px` }}><span className="node-kicker">目标领域</span><strong>{domain}</strong></div>{points.map((point, index) => { const selected = selectedIndex === index; const nodeSize = sizes[index] ?? 112; return <div className={`neural-node neural-branch ${selected ? 'is-selected' : ''}`} data-node key={nodeIds[index] ?? `${labels[index]}-${index}`} style={{ left: `${point.x}px`, top: `${point.y}px`, width: `${nodeSize}px`, height: `${nodeSize}px`, background: colors[index] ?? nodeColorPalette[0], transform: 'translate(-50%, -50%)' }} onPointerDown={(event) => handleNodeDown(event, index)} onPointerMove={(event) => handleNodeMove(event, index)} onPointerUp={(event) => handleNodeUp(event, index)} onPointerCancel={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); interactionRef.current = null }} onDoubleClick={() => onEdit(index, labels[index], colors[index] ?? nodeColorPalette[0])} onKeyDown={(event) => handleNodeKeyDown(event, index)} tabIndex={0} role="button"><strong>{labels[index]}</strong><small>{selected ? '长按右下角圆点调整' : '点击选中'}</small>{selected && <><span className="node-action-add" role="button" tabIndex={0} aria-label="从此节点添加节点" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => { event.stopPropagation(); onAdd(index) }}>＋</span><span className="node-handles" aria-label="调整节点大小"><span className="node-handle handle-se" aria-label="拖动调整节点大小" onPointerDown={(event) => handleResizeDown(event, index, { x: 1, y: 1 })} onPointerMove={handleResizeMove} onPointerUp={handleResizeUp} onPointerCancel={handleResizeUp} /></span></>}</div> })}</div><div className="neural-hint">单击选中 · 点击节点右上角小圆点添加子节点 · 长按拖动右下角圆点调整大小 · 双击编辑文字 · 按 Backspace 删除节点 · 拖动节点重新排列 · 滚轮缩放 · 拖动画布平移</div></div>
 }
 
 function App() {
@@ -140,6 +149,11 @@ function App() {
   const [nodeSizes, setNodeSizes] = useState<Record<string, number[]>>(() => {
     const defaults = Object.fromEntries(Object.entries(recommendedSkillNodes).map(([domain, labels]) => [domain, labels.map(() => 112)]))
     try { return { ...defaults, ...JSON.parse(localStorage.getItem('growth-library:node-sizes') ?? '{}') as Record<string, number[]> } } catch { return defaults }
+  })
+  const [nodeIds, setNodeIds] = useState<Record<string, string[]>>(() => {
+    let saved: Record<string, string[]> = {}
+    try { saved = JSON.parse(localStorage.getItem('growth-library:node-ids') ?? '{}') as Record<string, string[]> } catch { saved = {} }
+    return Object.fromEntries(Object.entries(nodeLabels).map(([domain, labels]) => [domain, labels.map((_, index) => saved[domain]?.[index] ?? `${domain}-${index}`)]))
   })
   const [nodeParents, setNodeParents] = useState<Record<string, (number | null)[]>>(() => {
     const defaults = Object.fromEntries(Object.entries(recommendedSkillNodes).map(([domain, labels]) => [domain, labels.map(() => null)]))
@@ -181,6 +195,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem('growth-library:node-sizes', JSON.stringify(nodeSizes))
   }, [nodeSizes])
+
+  useEffect(() => {
+    localStorage.setItem('growth-library:node-ids', JSON.stringify(nodeIds))
+  }, [nodeIds])
 
   useEffect(() => {
     localStorage.setItem('growth-library:node-parents', JSON.stringify(nodeParents))
@@ -248,6 +266,7 @@ function App() {
     const nextColor = nodeColorPalette[nextIndex % nodeColorPalette.length]
     setNodeColors((colors) => ({ ...colors, [selectedDomain]: [...(colors[selectedDomain] ?? []), nextColor] }))
     setNodeSizes((sizes) => ({ ...sizes, [selectedDomain]: [...(sizes[selectedDomain] ?? []), 112] }))
+    setNodeIds((ids) => ({ ...ids, [selectedDomain]: [...(ids[selectedDomain] ?? []), crypto.randomUUID()] }))
     setNodeParents((parents) => ({ ...parents, [selectedDomain]: [...(parents[selectedDomain] ?? []), parentIndex ?? null] }))
     setEditingNode({ index: nextIndex, label: nextLabel, color: nextColor, isNew: true })
     setEditingNodeText(nextLabel)
@@ -270,6 +289,7 @@ function App() {
     setNodeLabels((labels) => ({ ...labels, [selectedDomain]: (labels[selectedDomain] ?? []).filter((_, valueIndex) => valueIndex !== index) }))
     setNodeColors((colors) => ({ ...colors, [selectedDomain]: (colors[selectedDomain] ?? []).filter((_, valueIndex) => valueIndex !== index) }))
     setNodeSizes((sizes) => ({ ...sizes, [selectedDomain]: (sizes[selectedDomain] ?? []).filter((_, valueIndex) => valueIndex !== index) }))
+    setNodeIds((ids) => ({ ...ids, [selectedDomain]: (ids[selectedDomain] ?? []).filter((_, valueIndex) => valueIndex !== index) }))
     setNodeParents((parents) => ({ ...parents, [selectedDomain]: (parents[selectedDomain] ?? []).filter((_, valueIndex) => valueIndex !== index).map((parent) => parent === index ? null : parent !== null && parent > index ? parent - 1 : parent) }))
     setPendingDeleteNode(null)
   }
@@ -424,7 +444,7 @@ function App() {
             <div className="domain-detail-head"><button className="back-link" onClick={() => setSelectedDomain(null)}>← 我的领域</button><button className="add-button" onClick={() => openCapture('quick')}>+ 记录到{selectedDomain}</button></div>
             <div className="section-title"><div><span className="eyebrow">03 / SKILL MAP</span><h2>{selectedDomain}</h2></div><span className="domain-detail-progress">{domainCatalog.find((domain) => domain.name === selectedDomain)?.progress ?? 0}% 学习进展</span></div>
             <p className="view-intro">从真实记录中整理节点，不追求一开始就完整。先留下足迹，再慢慢长出自己的技能树。</p>
-            <ForceSkillMap key={selectedDomain} domain={selectedDomain} labels={nodeLabels[selectedDomain] ?? []} colors={nodeColors[selectedDomain] ?? []} sizes={nodeSizes[selectedDomain] ?? []} parents={nodeParents[selectedDomain] ?? []} onAdd={addSkillNode} onDelete={deleteSkillNode} onResize={(index, nextSize) => setNodeSizes((sizes) => ({ ...sizes, [selectedDomain]: (sizes[selectedDomain] ?? []).map((value, valueIndex) => valueIndex === index ? nextSize : value) }))} onEdit={(index, label, color) => { setEditingNode({ index, label, color }); setEditingNodeText(label) }} />
+            <ForceSkillMap key={selectedDomain} domain={selectedDomain} labels={nodeLabels[selectedDomain] ?? []} colors={nodeColors[selectedDomain] ?? []} sizes={nodeSizes[selectedDomain] ?? []} parents={nodeParents[selectedDomain] ?? []} nodeIds={nodeIds[selectedDomain] ?? []} onAdd={addSkillNode} onDelete={deleteSkillNode} onResize={(index, nextSize) => setNodeSizes((sizes) => ({ ...sizes, [selectedDomain]: (sizes[selectedDomain] ?? []).map((value, valueIndex) => valueIndex === index ? nextSize : value) }))} onEdit={(index, label, color) => { setEditingNode({ index, label, color }); setEditingNodeText(label) }} />
             <div className="domain-note-strip"><span>本领域笔记</span><strong>{inboxRecords.filter((record) => (record.domain ?? '未选择领域') === selectedDomain).length} 条</strong><button className="plain-link" onClick={() => setView('inbox')}>查看记录 →</button></div>
           </section>}
 
