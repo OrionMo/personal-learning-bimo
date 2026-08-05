@@ -108,6 +108,8 @@ function App() {
   const [captureText, setCaptureText] = useState('')
   const [captureImages, setCaptureImages] = useState<string[]>([])
   const [reflection, setReflection] = useState({ context: '', trigger: '', nextStep: '' })
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null)
+  const [pendingDeleteRecord, setPendingDeleteRecord] = useState<{ id: string; text: string } | null>(null)
   const [inboxRecords, setInboxRecords] = useState<InboxRecord[]>(() => {
     try { return JSON.parse(localStorage.getItem('growth-library:inbox') ?? '[]') as InboxRecord[] } catch { return [] }
   })
@@ -136,6 +138,7 @@ function App() {
   }, [nodeSizes])
 
   const openCapture = (mode: CaptureMode) => {
+    setEditingRecordId(null)
     setCaptureMode(mode)
     setCaptureDomain(learningDomains[0])
     setCaptureText('')
@@ -144,8 +147,25 @@ function App() {
     setShowModal(true)
   }
 
+  const openRecordEdit = (record: InboxRecord) => {
+    setEditingRecordId(record.id)
+    setCaptureMode('reflect')
+    setCaptureDomain(record.domain ?? learningDomains[0])
+    setCaptureText(record.rawText)
+    setCaptureImages(record.images ?? (record.image ? [record.image] : []))
+    setReflection({ context: record.context ?? '', trigger: record.trigger ?? '', nextStep: record.nextStep ?? '' })
+    setShowModal(true)
+  }
+
   const saveCapture = () => {
     if (!captureText.trim()) return
+    if (editingRecordId) {
+      setInboxRecords((records) => records.map((record) => record.id === editingRecordId ? { ...record, domain: captureDomain, rawText: captureText.trim(), context: reflection.context.trim(), trigger: reflection.trigger.trim(), nextStep: reflection.nextStep.trim(), images: captureImages } : record))
+      setEditingRecordId(null)
+      setShowModal(false)
+      setView('inbox')
+      return
+    }
     const record: InboxRecord = {
       id: crypto.randomUUID(),
       domain: captureDomain,
@@ -159,6 +179,16 @@ function App() {
     setInboxRecords((records) => [record, ...records])
     setShowModal(false)
     setView('inbox')
+  }
+
+  const requestDeleteRecord = (record: InboxRecord) => {
+    setPendingDeleteRecord({ id: record.id, text: record.rawText.slice(0, 42) })
+  }
+
+  const confirmDeleteRecord = () => {
+    if (!pendingDeleteRecord) return
+    setInboxRecords((records) => records.filter((record) => record.id !== pendingDeleteRecord.id))
+    setPendingDeleteRecord(null)
   }
 
   const addSkillNode = () => {
@@ -349,7 +379,7 @@ function App() {
 
           {view === 'inbox' && <section className="inbox-section">
             <div className="section-title"><div><span className="eyebrow">04 / INBOX</span><h2>待整理的碎片</h2></div><button className="add-button" onClick={() => openCapture('reflect')}>帮我回想</button></div>
-            {inboxRecords.length === 0 ? <div className="inbox-empty">还没有待整理内容。看到什么，就先丢进来。</div> : <div className="inbox-list">{inboxRecords.map((record) => <article className="inbox-record" key={record.id}><div className="inbox-record-meta"><span>{record.createdAt}</span><b>{record.domain ?? '未选择领域'} · {record.context ? '已回想' : '待回想'}</b></div><p>{record.rawText}</p>{(record.images ?? (record.image ? [record.image] : [])).length > 0 && <div className="inbox-record-images">{(record.images ?? (record.image ? [record.image] : [])).map((image, index) => <img className="inbox-record-image" key={`${record.id}-${index}`} src={image} alt={`记录中的图片 ${index + 1}`} />)}</div>}{record.context && <div className="reflection-summary"><span>当时场景</span>{record.context}{record.trigger && ` · 触发：${record.trigger}`}</div>}</article>)}</div>}
+            {inboxRecords.length === 0 ? <div className="inbox-empty">还没有待整理内容。看到什么，就先丢进来。</div> : <div className="inbox-list">{inboxRecords.map((record) => <article className="inbox-record" key={record.id}><div className="inbox-record-meta"><span>{record.createdAt}</span><b>{record.domain ?? '未选择领域'} · {record.context ? '已回想' : '待回想'}</b><div className="inbox-record-actions"><button aria-label="编辑这条笔记" onClick={() => openRecordEdit(record)}>编辑</button><button className="danger" aria-label="删除这条笔记" onClick={() => requestDeleteRecord(record)}>删除</button></div></div><p>{record.rawText}</p>{(record.images ?? (record.image ? [record.image] : [])).length > 0 && <div className="inbox-record-images">{(record.images ?? (record.image ? [record.image] : [])).map((image, index) => <img className="inbox-record-image" key={`${record.id}-${index}`} src={image} alt={`记录中的图片 ${index + 1}`} />)}</div>}{record.context && <div className="reflection-summary"><span>当时场景</span>{record.context}{record.trigger && ` · 触发：${record.trigger}`}</div>}</article>)}</div>}
           </section>}
         </div>
       </section>
@@ -376,15 +406,17 @@ function App() {
 
       {pendingDeleteNode && <div className="modal-backdrop" onClick={() => setPendingDeleteNode(null)}><div className="node-edit-modal delete-confirm-modal" onClick={(event) => event.stopPropagation()}><span className="eyebrow">DELETE NODE</span><h2>删除技能节点</h2><p>确定删除“{pendingDeleteNode.label}”吗？删除后可以重新添加，但当前节点内容不会保留。</p><div className="node-edit-actions"><button className="plain-link" onClick={() => setPendingDeleteNode(null)}>取消</button><button className="delete-confirm-button" onClick={confirmDeleteSkillNode}>删除节点</button></div></div></div>}
 
+      {pendingDeleteRecord && <div className="modal-backdrop" onClick={() => setPendingDeleteRecord(null)}><div className="node-edit-modal delete-confirm-modal" onClick={(event) => event.stopPropagation()}><span className="eyebrow">DELETE NOTE</span><h2>删除待整理笔记</h2><p>确定删除这条笔记吗？删除后将无法恢复。</p><div className="delete-record-preview">“{pendingDeleteRecord.text}{pendingDeleteRecord.text.length >= 42 ? '…' : ''}”</div><div className="node-edit-actions"><button className="plain-link" onClick={() => setPendingDeleteRecord(null)}>取消</button><button className="delete-confirm-button" onClick={confirmDeleteRecord}>删除笔记</button></div></div></div>}
+
       {showModal && <div className="modal-backdrop" onClick={() => setShowModal(false)}><div className="capture-modal" onClick={(event) => event.stopPropagation()}>
-        <div className="capture-modal-head"><div><span className="eyebrow lime-text">QUICK CAPTURE</span><h2>{captureMode === 'quick' ? '先记下来，不要打断自己' : '帮你回想一下当时'}</h2></div><button className="close-button" onClick={() => setShowModal(false)}>×</button></div>
+        <div className="capture-modal-head"><div><span className="eyebrow lime-text">{editingRecordId ? 'EDIT NOTE' : 'QUICK CAPTURE'}</span><h2>{editingRecordId ? '编辑待整理笔记' : captureMode === 'quick' ? '先记下来，不要打断自己' : '帮你回想一下当时'}</h2></div><button className="close-button" onClick={() => { setShowModal(false); setEditingRecordId(null) }}>×</button></div>
         <div className="capture-mode-switch"><button className={captureMode === 'quick' ? 'selected' : ''} onClick={() => setCaptureMode('quick')}>快速保存</button><button className={captureMode === 'reflect' ? 'selected' : ''} onClick={() => setCaptureMode('reflect')}>帮我回想</button></div>
         <div className="domain-select-label"><span>学习领域选择</span><div className="domain-picker">{learningDomains.map((domain) => <button className={`domain-chip ${captureDomain === domain ? 'selected' : ''}`} key={domain} onClick={() => setCaptureDomain(domain)} aria-pressed={captureDomain === domain}>{domain}</button>)}</div></div>
         <label className="capture-label">刚刚捕捉到的内容<textarea value={captureText} onChange={(event) => setCaptureText(event.target.value)} onPaste={handleCapturePaste} placeholder="一句话、一个链接，或者一段还没想清楚的话……" autoFocus /></label>
         <div className="capture-image-tools"><label className="image-attach-button">+ 上传图片（{captureImages.length}/9）<input type="file" accept="image/*" multiple onChange={(event) => { const files = Array.from(event.target.files ?? []); if (captureImages.length >= 9) window.alert('已达到上限，单条记录最多 9 张图片'); else files.slice(0, 9 - captureImages.length).forEach(readCaptureImage); event.target.value = '' }} /></label><span>也可以直接 Ctrl + V 粘贴图片</span>{captureImages.length > 0 && <button className="remove-capture-image" onClick={() => setCaptureImages([])}>全部移除</button>}</div>
         {captureImages.length > 0 && <div className="capture-image-previews">{captureImages.map((image, index) => <div className="capture-image-preview-wrap" key={`capture-${index}`}><img className="capture-image-preview" src={image} alt={`待保存的图片 ${index + 1}`} /><button className="remove-one-image" onClick={() => setCaptureImages((images) => images.filter((_, imageIndex) => imageIndex !== index))}>×</button></div>)}</div>}
         {captureMode === 'reflect' && <div className="reflection-fields"><label>你当时正在做什么？<input value={reflection.context} onChange={(event) => setReflection({ ...reflection, context: event.target.value })} placeholder="比如：下班路上刷到一条视频" /></label><label>是什么让你停下来想到它？<input value={reflection.trigger} onChange={(event) => setReflection({ ...reflection, trigger: event.target.value })} placeholder="比如：它刚好解决了我今天遇到的问题" /></label><label>之后想试试什么？<input value={reflection.nextStep} onChange={(event) => setReflection({ ...reflection, nextStep: event.target.value })} placeholder="可以先空着，之后再补" /></label></div>}
-        <div className="modal-actions"><button className="plain-link" onClick={() => setShowModal(false)}>取消</button><button className="add-button" onClick={saveCapture}>{captureMode === 'quick' ? '立即保存' : '保存并完成回想'}</button></div>
+        <div className="modal-actions"><button className="plain-link" onClick={() => { setShowModal(false); setEditingRecordId(null) }}>取消</button><button className="add-button" onClick={saveCapture}>{editingRecordId ? '保存修改' : captureMode === 'quick' ? '立即保存' : '保存并完成回想'}</button></div>
       </div></div>}
     </main>
   )
