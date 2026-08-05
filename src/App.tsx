@@ -268,8 +268,6 @@ function App() {
     setNodeSizes((sizes) => ({ ...sizes, [selectedDomain]: [...(sizes[selectedDomain] ?? []), 112] }))
     setNodeIds((ids) => ({ ...ids, [selectedDomain]: [...(ids[selectedDomain] ?? []), crypto.randomUUID()] }))
     setNodeParents((parents) => ({ ...parents, [selectedDomain]: [...(parents[selectedDomain] ?? []), parentIndex ?? null] }))
-    setEditingNode({ index: nextIndex, label: nextLabel, color: nextColor, isNew: true })
-    setEditingNodeText(nextLabel)
   }
 
   const discardEditingNode = () => {
