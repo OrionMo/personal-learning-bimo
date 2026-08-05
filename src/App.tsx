@@ -70,15 +70,42 @@ function ForceSkillMap({ domain, labels, colors, sizes, parents, onEdit, onAdd, 
 
   useEffect(() => {
     setPoints((current) => {
-      if (labels.length <= current.length) return current.slice(0, labels.length)
+      if (labels.length <= current.length) return labels.length === current.length ? current : current.slice(0, labels.length)
       const centerX = size.width / 2 || 420
       const centerY = size.height / 2 || 260
-      const parentIndex = labels.length - 1 > 0 ? parents[labels.length - 1] : null
+      const newIndex = labels.length - 1
+      const parentIndex = newIndex > 0 ? parents[newIndex] : null
       const parent = parentIndex !== null && parentIndex !== undefined ? current[parentIndex] : undefined
       const base = parent ?? { x: centerX, y: centerY, vx: 0, vy: 0 }
-      const angle = ((labels.length - 1) % 2 === 0 ? -1 : 1) * (Math.PI / 5)
-      const distance = Math.max(150, (sizes[parentIndex ?? 0] ?? 112) * 1.35)
-      return [...current, { x: base.x + Math.cos(angle) * distance, y: base.y + Math.sin(angle) * distance, vx: 0, vy: 0, fixed: true }]
+      const newSize = sizes[newIndex] ?? 112
+      const rootRadius = 112
+      const padding = 24
+      const maxX = Math.max(newSize / 2 + padding, (size.width || 840) - newSize / 2 - padding)
+      const maxY = Math.max(newSize / 2 + padding, (size.height || 520) - newSize / 2 - padding)
+      const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
+      const overlaps = (candidate: { x: number; y: number }) => {
+        const rootDistance = Math.hypot(candidate.x - centerX, candidate.y - centerY)
+        if (rootDistance < newSize / 2 + rootRadius + 22) return true
+        return current.some((point, index) => {
+          const distance = Math.hypot(candidate.x - point.x, candidate.y - point.y)
+          return distance < newSize / 2 + (sizes[index] ?? 112) / 2 + 22
+        })
+      }
+      const distances = [
+        Math.max(150, ((sizes[parentIndex ?? 0] ?? 112) + newSize) * .72),
+        Math.max(210, ((sizes[parentIndex ?? 0] ?? 112) + newSize) * 1.05),
+        Math.max(280, ((sizes[parentIndex ?? 0] ?? 112) + newSize) * 1.35),
+      ]
+      const candidates = distances.flatMap((distance) => Array.from({ length: 18 }, (_, step) => {
+        const angle = (step / 18) * Math.PI * 2 + (newIndex % 2 ? Math.PI / 18 : 0)
+        return { x: clamp(base.x + Math.cos(angle) * distance, newSize / 2 + padding, maxX), y: clamp(base.y + Math.sin(angle) * distance, newSize / 2 + padding, maxY) }
+      }))
+      const position = candidates.find((candidate) => !overlaps(candidate)) ?? candidates.reduce((best, candidate) => {
+        const clearance = current.reduce((minimum, point, index) => Math.min(minimum, Math.hypot(candidate.x - point.x, candidate.y - point.y) - newSize / 2 - (sizes[index] ?? 112) / 2), Number.POSITIVE_INFINITY)
+        const bestClearance = current.reduce((minimum, point, index) => Math.min(minimum, Math.hypot(best.x - point.x, best.y - point.y) - newSize / 2 - (sizes[index] ?? 112) / 2), Number.POSITIVE_INFINITY)
+        return clearance > bestClearance ? candidate : best
+      })
+      return [...current, { x: position.x, y: position.y, vx: 0, vy: 0, fixed: true }]
     })
   }, [labels.length, parents, size.height, size.width, sizes])
 
