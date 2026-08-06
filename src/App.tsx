@@ -39,8 +39,9 @@ const cards = [
 
 type ForcePoint = { x: number; y: number; vx: number; vy: number; fixed?: boolean }
 type ResizeDirection = { x: number; y: number }
+type NodePosition = { x: number; y: number }
 
-function ForceSkillMap({ domain, labels, colors, sizes, parents, nodeIds, onEdit, onAdd, onConnect, onDelete, onResize }: { domain: string; labels: string[]; colors: string[]; sizes: number[]; parents: (number | null | -1)[]; nodeIds: string[]; onEdit: (index: number, label: string, color: string) => void; onAdd: (parentIndex?: number) => void; onConnect: (sourceIndex: number, targetIndex: number) => void; onDelete: (index: number) => void; onResize: (index: number, size: number) => void }) {
+function ForceSkillMap({ domain, labels, colors, sizes, parents, nodeIds, positions, onPositionsChange, onEdit, onAdd, onConnect, onDelete, onResize }: { domain: string; labels: string[]; colors: string[]; sizes: number[]; parents: (number | null | -1)[]; nodeIds: string[]; positions: Record<string, NodePosition>; onPositionsChange: (positions: Record<string, NodePosition>) => void; onEdit: (index: number, label: string, color: string) => void; onAdd: (parentIndex?: number) => void; onConnect: (sourceIndex: number, targetIndex: number) => void; onDelete: (index: number) => void; onResize: (index: number, size: number) => void }) {
   const boardRef = useRef<HTMLDivElement>(null)
   const interactionRef = useRef<{ type: 'node' | 'pan'; index?: number; moved: boolean; startX: number; startY: number; startPanX: number; startPanY: number } | null>(null)
   const resizeRef = useRef<{ index: number; startX: number; startY: number; startSize: number; direction: ResizeDirection } | null>(null)
@@ -66,7 +67,7 @@ function ForceSkillMap({ domain, labels, colors, sizes, parents, nodeIds, onEdit
     const centerX = size.width / 2 || 420
     const centerY = size.height / 2 || 260
     const radius = Math.min(centerX, centerY) * .68
-    setPoints(labels.map((_, index) => { const angle = (-Math.PI / 2) + index * (Math.PI * 2 / Math.max(labels.length, 1)); return { x: centerX + Math.cos(angle) * radius, y: centerY + Math.sin(angle) * radius, vx: 0, vy: 0, fixed: true } }))
+    setPoints(labels.map((_, index) => { const angle = (-Math.PI / 2) + index * (Math.PI * 2 / Math.max(labels.length, 1)); const saved = positions[nodeIds[index]]; return { x: saved?.x ?? centerX + Math.cos(angle) * radius, y: saved?.y ?? centerY + Math.sin(angle) * radius, vx: 0, vy: 0, fixed: true } }))
     previousNodeIdsRef.current = nodeIds
     setZoom(1)
     setPan({ x: 0, y: 0 })
@@ -119,6 +120,11 @@ function ForceSkillMap({ domain, labels, colors, sizes, parents, nodeIds, onEdit
       return [...current, { x: position.x, y: position.y, vx: 0, vy: 0, fixed: true }]
     })
   }, [nodeIds, parents, size.height, size.width, sizes])
+
+  useEffect(() => {
+    if (points.length !== nodeIds.length) return
+    onPositionsChange(Object.fromEntries(points.map((point, index) => [nodeIds[index], { x: point.x, y: point.y }])))
+  }, [points, nodeIds])
 
   const worldPoint = (event: PointerEvent<HTMLElement>) => { const rect = boardRef.current?.getBoundingClientRect(); if (!rect) return { x: 0, y: 0 }; return { x: (event.clientX - rect.left - rect.width / 2 - pan.x) / zoom + rect.width / 2, y: (event.clientY - rect.top - rect.height / 2 - pan.y) / zoom + rect.height / 2 } }
   const handleNodeDown = (event: PointerEvent<HTMLElement>, index: number) => { event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); interactionRef.current = { type: 'node', index, moved: false, startX: event.clientX, startY: event.clientY, startPanX: pan.x, startPanY: pan.y }; setPoints((current) => current.map((point, pointIndex) => pointIndex === index ? { ...point, vx: 0, vy: 0 } : point)) }
@@ -203,6 +209,9 @@ function App() {
     try { saved = JSON.parse(localStorage.getItem('growth-library:node-ids') ?? '{}') as Record<string, string[]> } catch { saved = {} }
     return Object.fromEntries(Object.entries(nodeLabels).map(([domain, labels]) => [domain, labels.map((_, index) => saved[domain]?.[index] ?? `${domain}-${index}`)]))
   })
+  const [nodePositions, setNodePositions] = useState<Record<string, Record<string, NodePosition>>>(() => {
+    try { return JSON.parse(localStorage.getItem('growth-library:node-positions') ?? '{}') as Record<string, Record<string, NodePosition>> } catch { return {} }
+  })
   const [nodeParents, setNodeParents] = useState<Record<string, (number | null | -1)[]>>(() => {
     const defaults = Object.fromEntries(Object.entries(recommendedSkillNodes).map(([domain, labels]) => [domain, labels.map(() => null)]))
     try { return { ...defaults, ...JSON.parse(localStorage.getItem('growth-library:node-parents') ?? '{}') as Record<string, (number | null | -1)[]> } } catch { return defaults }
@@ -247,6 +256,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem('growth-library:node-ids', JSON.stringify(nodeIds))
   }, [nodeIds])
+
+  useEffect(() => {
+    localStorage.setItem('growth-library:node-positions', JSON.stringify(nodePositions))
+  }, [nodePositions])
 
   useEffect(() => {
     localStorage.setItem('growth-library:node-parents', JSON.stringify(nodeParents))
@@ -503,7 +516,7 @@ function App() {
             <div className="domain-detail-head"><button className="back-link" onClick={() => setSelectedDomain(null)}>← 我的领域</button><button className="add-button" onClick={() => openCapture('quick')}>+ 记录到{selectedDomain}</button></div>
             <div className="section-title"><div><span className="eyebrow">03 / SKILL MAP</span><h2>{selectedDomain}</h2></div><span className="domain-detail-progress">{domainCatalog.find((domain) => domain.name === selectedDomain)?.progress ?? 0}% 学习进展</span></div>
             <p className="view-intro">从真实记录中整理节点，不追求一开始就完整。先留下足迹，再慢慢长出自己的技能树。</p>
-            <ForceSkillMap key={selectedDomain} domain={selectedDomain} labels={nodeLabels[selectedDomain] ?? []} colors={nodeColors[selectedDomain] ?? []} sizes={nodeSizes[selectedDomain] ?? []} parents={nodeParents[selectedDomain] ?? []} nodeIds={nodeIds[selectedDomain] ?? []} onAdd={addSkillNode} onConnect={connectSkillNodes} onDelete={deleteSkillNode} onResize={(index, nextSize) => setNodeSizes((sizes) => ({ ...sizes, [selectedDomain]: (sizes[selectedDomain] ?? []).map((value, valueIndex) => valueIndex === index ? nextSize : value) }))} onEdit={(index, label, color) => { setEditingNode({ index, label, color }); setEditingNodeText(label) }} />
+            <ForceSkillMap key={selectedDomain} domain={selectedDomain} labels={nodeLabels[selectedDomain] ?? []} colors={nodeColors[selectedDomain] ?? []} sizes={nodeSizes[selectedDomain] ?? []} parents={nodeParents[selectedDomain] ?? []} nodeIds={nodeIds[selectedDomain] ?? []} positions={nodePositions[selectedDomain] ?? {}} onPositionsChange={(positions) => setNodePositions((all) => ({ ...all, [selectedDomain]: positions }))} onAdd={addSkillNode} onConnect={connectSkillNodes} onDelete={deleteSkillNode} onResize={(index, nextSize) => setNodeSizes((sizes) => ({ ...sizes, [selectedDomain]: (sizes[selectedDomain] ?? []).map((value, valueIndex) => valueIndex === index ? nextSize : value) }))} onEdit={(index, label, color) => { setEditingNode({ index, label, color }); setEditingNodeText(label) }} />
             <div className="domain-note-strip"><span>本领域笔记</span><strong>{inboxRecords.filter((record) => (record.domain ?? '未选择领域') === selectedDomain).length} 条</strong><button className="plain-link" onClick={() => setView('inbox')}>查看记录 →</button></div>
           </section>}
 
