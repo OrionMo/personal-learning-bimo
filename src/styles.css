@@ -243,7 +243,7 @@ button, textarea, input, select { font-family: inherit; }
 }
 
 .skill-map-board {
-  min-height: 360px;
+  min-height: 720px;
   display: grid;
   place-items: center;
   align-content: center;
@@ -340,7 +340,7 @@ button, textarea, input, select { font-family: inherit; }
 .branch-1 { top: 14%; left: 18%; }.branch-2 { top: 22%; right: 15%; }.branch-3 { bottom: 15%; left: 14%; }.branch-4 { right: 25%; bottom: 10%; }.neural-line { position: absolute; z-index: 1; left: 50%; top: 50%; width: 285px; height: 1px; border: 0; border-radius: 0; background: rgba(106, 138, 170, .34); transform-origin: left center; }.line-one { transform: rotate(-132deg); }.line-two { transform: rotate(-42deg); }.line-three { transform: rotate(150deg); }.line-four { transform: rotate(31deg); }.neural-hint { position: absolute; right: 20px; bottom: 18px; left: 20px; color: #86868b; font-size: 11px; text-align: center; }
 .neural-line.connection-preview { z-index: 3; height: 2px; background: #0071e3; box-shadow: 0 0 0 4px rgba(0,113,227,.08); pointer-events: none; }
 .neural-node.is-connection-target { outline: 3px solid #0071e3; outline-offset: 7px; box-shadow: 0 0 0 8px rgba(0,113,227,.12), 0 18px 36px rgba(0,113,227,.18); }
-@media (max-width: 850px) { .neural-map { min-height: 460px; }.neural-root { width: 126px; height: 126px; }.neural-node { width: 92px; height: 92px; }.neural-node strong { max-width: 70px; font-size: 11px; }.neural-root strong { max-width: 92px; font-size: 14px; }.branch-1 { top: 15%; left: 6%; }.branch-2 { top: 20%; right: 5%; }.branch-3 { bottom: 17%; left: 5%; }.branch-4 { right: 10%; bottom: 12%; }.neural-line { width: 185px; } }
+@media (max-width: 850px) { .neural-map { min-height: 720px; }.neural-root { width: 126px; height: 126px; }.neural-node { width: 92px; height: 92px; }.neural-node strong { max-width: 70px; font-size: 11px; }.neural-root strong { max-width: 92px; font-size: 14px; }.branch-1 { top: 15%; left: 6%; }.branch-2 { top: 20%; right: 5%; }.branch-3 { bottom: 17%; left: 5%; }.branch-4 { right: 10%; bottom: 12%; }.neural-line { width: 185px; } }
 
 /* Apple Design System pass: calm surfaces, system colors, consistent states */
 :root { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Helvetica Neue", sans-serif; color: #1d1d1f; background: #f5f5f7; --paper: #f5f5f7; --ink: #1d1d1f; --line: #d2d2d7; --muted: #6e6e73; --card: #ffffff; --lime: #0071e3; --coral: #ff3b30; --blue: #5ac8fa; --radius-panel: 20px; --radius-card: 16px; --radius-control: 12px; }
