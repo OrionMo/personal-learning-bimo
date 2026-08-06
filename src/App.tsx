@@ -40,8 +40,9 @@ const cards = [
 type ForcePoint = { x: number; y: number; vx: number; vy: number; fixed?: boolean }
 type ResizeDirection = { x: number; y: number }
 type NodePosition = { x: number; y: number }
+type ConnectionEdge = { source: number; target: number }
 
-function ForceSkillMap({ domain, labels, colors, sizes, parents, nodeIds, positions, onPositionsChange, onEdit, onAdd, onConnect, onDelete, onResize }: { domain: string; labels: string[]; colors: string[]; sizes: number[]; parents: (number | null | -1)[]; nodeIds: string[]; positions: Record<string, NodePosition>; onPositionsChange: (positions: Record<string, NodePosition>) => void; onEdit: (index: number, label: string, color: string) => void; onAdd: (parentIndex?: number) => void; onConnect: (sourceIndex: number, targetIndex: number) => void; onDelete: (index: number) => void; onResize: (index: number, size: number) => void }) {
+function ForceSkillMap({ domain, labels, colors, sizes, parents, edges, nodeIds, positions, onPositionsChange, onEdit, onAdd, onConnect, onDelete, onResize }: { domain: string; labels: string[]; colors: string[]; sizes: number[]; parents: (number | null | -1)[]; edges: ConnectionEdge[]; nodeIds: string[]; positions: Record<string, NodePosition>; onPositionsChange: (positions: Record<string, NodePosition>) => void; onEdit: (index: number, label: string, color: string) => void; onAdd: (parentIndex?: number) => void; onConnect: (sourceIndex: number, targetIndex: number) => void; onDelete: (index: number) => void; onResize: (index: number, size: number) => void }) {
   const boardRef = useRef<HTMLDivElement>(null)
   const interactionRef = useRef<{ type: 'node' | 'pan'; index?: number; moved: boolean; startX: number; startY: number; startPanX: number; startPanY: number } | null>(null)
   const resizeRef = useRef<{ index: number; startX: number; startY: number; startSize: number; direction: ResizeDirection } | null>(null)
@@ -185,7 +186,22 @@ function ForceSkillMap({ domain, labels, colors, sizes, parents, nodeIds, positi
     setConnectionDraft(null)
   }
 
-  return <div className="skill-map-board neural-map" ref={boardRef} onPointerDown={handleCanvasDown} onPointerMove={handleCanvasMove} onPointerUp={handleCanvasUp} onPointerCancel={handleCanvasUp} onWheelCapture={handleWheel}><div className="mindmap-toolbar" onPointerDown={(event) => event.stopPropagation()}><span>{Math.round(zoom * 100)}%</span></div><div className="neural-world" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>{points.map((point, index) => { const parentIndex = parents[index]; if (parentIndex === -1) return null; const parent = parentIndex !== null && parentIndex !== undefined && parentIndex >= 0 ? points[parentIndex] : undefined; const centerX = parent?.x ?? size.width / 2; const centerY = parent?.y ?? size.height / 2; const dx = point.x - centerX; const dy = point.y - centerY; return <div className="neural-line" key={`line-${nodeIds[index] ?? index}`} style={{ left: `${centerX}px`, top: `${centerY}px`, width: `${Math.hypot(dx, dy)}px`, transform: `rotate(${Math.atan2(dy, dx) * 180 / Math.PI}deg)` }} /> })}{connectionDraft && points[connectionDraft.sourceIndex] && <div className="neural-line connection-preview" style={{ left: `${points[connectionDraft.sourceIndex].x}px`, top: `${points[connectionDraft.sourceIndex].y}px`, width: `${Math.hypot((connectionDraft.targetIndex !== null ? points[connectionDraft.targetIndex].x : connectionDraft.x) - points[connectionDraft.sourceIndex].x, (connectionDraft.targetIndex !== null ? points[connectionDraft.targetIndex].y : connectionDraft.y) - points[connectionDraft.sourceIndex].y)}px`, transform: `rotate(${Math.atan2((connectionDraft.targetIndex !== null ? points[connectionDraft.targetIndex].y : connectionDraft.y) - points[connectionDraft.sourceIndex].y, (connectionDraft.targetIndex !== null ? points[connectionDraft.targetIndex].x : connectionDraft.x) - points[connectionDraft.sourceIndex].x) * 180 / Math.PI}deg)` }} />}<div className="neural-node neural-root" style={{ left: `${size.width / 2}px`, top: `${size.height / 2}px` }}><span className="node-kicker">目标领域</span><strong>{domain}</strong></div>{points.map((point, index) => { const selected = selectedIndex === index; const connectionTarget = connectionDraft?.targetIndex === index; const nodeSize = sizes[index] ?? 112; return <div className={`neural-node neural-branch ${selected ? 'is-selected' : ''} ${connectionTarget ? 'is-connection-target' : ''}`} data-node key={nodeIds[index] ?? `${labels[index]}-${index}`} style={{ left: `${point.x}px`, top: `${point.y}px`, width: `${nodeSize}px`, height: `${nodeSize}px`, background: colors[index] ?? nodeColorPalette[0], transform: 'translate(-50%, -50%)' }} onPointerDown={(event) => handleNodeDown(event, index)} onPointerMove={(event) => handleNodeMove(event, index)} onPointerUp={(event) => handleNodeUp(event, index)} onPointerCancel={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); interactionRef.current = null }} onDoubleClick={() => onEdit(index, labels[index], colors[index] ?? nodeColorPalette[0])} onKeyDown={(event) => handleNodeKeyDown(event, index)} tabIndex={0} role="button"><strong>{labels[index]}</strong><small>{selected ? '长按右下角圆点调整' : '点击选中'}</small>{selected && <><span className="node-action-add" role="button" tabIndex={0} aria-label="从此节点添加节点" onPointerDown={(event) => handleAddPointerDown(event, index)} onPointerMove={handleAddPointerMove} onPointerUp={(event) => finishAddPointer(event)} onPointerCancel={(event) => finishAddPointer(event, true)} /><span className="node-handles" aria-label="调整节点大小"><span className="node-handle handle-se" aria-label="拖动调整节点大小" onPointerDown={(event) => handleResizeDown(event, index, { x: 1, y: 1 })} onPointerMove={handleResizeMove} onPointerUp={handleResizeUp} onPointerCancel={handleResizeUp} /></span></>}</div> })}</div><div className="neural-hint">单击选中 · 点击小圆点直接新增；长按小圆点拖出连线并靠近节点吸附 · 长按拖动右下角圆点调整大小 · 双击编辑文字 · 按 Backspace 删除节点 · 拖动节点重新排列 · 滚轮缩放 · 拖动画布平移</div></div>
+  const graphLines = [
+    ...points.flatMap((point, index) => {
+      const parentIndex = parents[index]
+      if (parentIndex === -1) return []
+      const source = parentIndex !== null && parentIndex !== undefined && parentIndex >= 0 ? points[parentIndex] : { x: size.width / 2, y: size.height / 2 }
+      return source ? [{ key: `parent-${nodeIds[index] ?? index}`, source, target: point }] : []
+    }),
+    ...edges.flatMap((edge, index) => {
+      const source = points[edge.source]
+      const target = points[edge.target]
+      if (!source || !target || parents[edge.target] === edge.source) return []
+      return [{ key: `edge-${index}-${edge.source}-${edge.target}`, source, target }]
+    }),
+  ]
+
+  return <div className="skill-map-board neural-map" ref={boardRef} onPointerDown={handleCanvasDown} onPointerMove={handleCanvasMove} onPointerUp={handleCanvasUp} onPointerCancel={handleCanvasUp} onWheelCapture={handleWheel}><div className="mindmap-toolbar" onPointerDown={(event) => event.stopPropagation()}><span>{Math.round(zoom * 100)}%</span></div><div className="neural-world" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>{graphLines.map((line) => { const dx = line.target.x - line.source.x; const dy = line.target.y - line.source.y; return <div className="neural-line" key={line.key} style={{ left: `${line.source.x}px`, top: `${line.source.y}px`, width: `${Math.hypot(dx, dy)}px`, transform: `rotate(${Math.atan2(dy, dx) * 180 / Math.PI}deg)` }} /> })}{connectionDraft && points[connectionDraft.sourceIndex] && <div className="neural-line connection-preview" style={{ left: `${points[connectionDraft.sourceIndex].x}px`, top: `${points[connectionDraft.sourceIndex].y}px`, width: `${Math.hypot((connectionDraft.targetIndex !== null ? points[connectionDraft.targetIndex].x : connectionDraft.x) - points[connectionDraft.sourceIndex].x, (connectionDraft.targetIndex !== null ? points[connectionDraft.targetIndex].y : connectionDraft.y) - points[connectionDraft.sourceIndex].y)}px`, transform: `rotate(${Math.atan2((connectionDraft.targetIndex !== null ? points[connectionDraft.targetIndex].y : connectionDraft.y) - points[connectionDraft.sourceIndex].y, (connectionDraft.targetIndex !== null ? points[connectionDraft.targetIndex].x : connectionDraft.x) - points[connectionDraft.sourceIndex].x) * 180 / Math.PI}deg)` }} />}<div className="neural-node neural-root" style={{ left: `${size.width / 2}px`, top: `${size.height / 2}px` }}><span className="node-kicker">目标领域</span><strong>{domain}</strong></div>{points.map((point, index) => { const selected = selectedIndex === index; const connectionTarget = connectionDraft?.targetIndex === index; const nodeSize = sizes[index] ?? 112; return <div className={`neural-node neural-branch ${selected ? 'is-selected' : ''} ${connectionTarget ? 'is-connection-target' : ''}`} data-node key={nodeIds[index] ?? `${labels[index]}-${index}`} style={{ left: `${point.x}px`, top: `${point.y}px`, width: `${nodeSize}px`, height: `${nodeSize}px`, background: colors[index] ?? nodeColorPalette[0], transform: 'translate(-50%, -50%)' }} onPointerDown={(event) => handleNodeDown(event, index)} onPointerMove={(event) => handleNodeMove(event, index)} onPointerUp={(event) => handleNodeUp(event, index)} onPointerCancel={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); interactionRef.current = null }} onDoubleClick={() => onEdit(index, labels[index], colors[index] ?? nodeColorPalette[0])} onKeyDown={(event) => handleNodeKeyDown(event, index)} tabIndex={0} role="button"><strong>{labels[index]}</strong><small>{selected ? '长按右下角圆点调整' : '点击选中'}</small>{selected && <><span className="node-action-add" role="button" tabIndex={0} aria-label="从此节点添加节点" onPointerDown={(event) => handleAddPointerDown(event, index)} onPointerMove={handleAddPointerMove} onPointerUp={(event) => finishAddPointer(event)} onPointerCancel={(event) => finishAddPointer(event, true)} /><span className="node-handles" aria-label="调整节点大小"><span className="node-handle handle-se" aria-label="拖动调整节点大小" onPointerDown={(event) => handleResizeDown(event, index, { x: 1, y: 1 })} onPointerMove={handleResizeMove} onPointerUp={handleResizeUp} onPointerCancel={handleResizeUp} /></span></>}</div> })}</div><div className="neural-hint">单击选中 · 点击小圆点直接新增；长按小圆点拖出连线并靠近节点吸附 · 长按拖动右下角圆点调整大小 · 双击编辑文字 · 按 Backspace 删除节点 · 拖动节点重新排列 · 滚轮缩放 · 拖动画布平移</div></div>
 }
 
 function App() {
@@ -215,6 +231,9 @@ function App() {
   const [nodeParents, setNodeParents] = useState<Record<string, (number | null | -1)[]>>(() => {
     const defaults = Object.fromEntries(Object.entries(recommendedSkillNodes).map(([domain, labels]) => [domain, labels.map(() => null)]))
     try { return { ...defaults, ...JSON.parse(localStorage.getItem('growth-library:node-parents') ?? '{}') as Record<string, (number | null | -1)[]> } } catch { return defaults }
+  })
+  const [nodeEdges, setNodeEdges] = useState<Record<string, ConnectionEdge[]>>(() => {
+    try { return JSON.parse(localStorage.getItem('growth-library:node-edges') ?? '{}') as Record<string, ConnectionEdge[]> } catch { return {} }
   })
   const [editingNode, setEditingNode] = useState<{ index: number; label: string; color: string; isNew?: boolean } | null>(null)
   const [editingNodeText, setEditingNodeText] = useState('')
@@ -264,6 +283,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem('growth-library:node-parents', JSON.stringify(nodeParents))
   }, [nodeParents])
+
+  useEffect(() => {
+    localStorage.setItem('growth-library:node-edges', JSON.stringify(nodeEdges))
+  }, [nodeEdges])
 
   const openCapture = (mode: CaptureMode) => {
     setEditingRecordId(null)
@@ -333,14 +356,10 @@ function App() {
 
   const connectSkillNodes = (sourceIndex: number, targetIndex: number) => {
     if (!selectedDomain || sourceIndex === targetIndex) return
-    setNodeParents((parents) => {
-      const current = parents[selectedDomain] ?? []
-      let cursor: number | null | -1 = sourceIndex
-      while (typeof cursor === 'number' && cursor >= 0) {
-        if (cursor === targetIndex) return parents
-        cursor = current[cursor] ?? null
-      }
-      return { ...parents, [selectedDomain]: current.map((parent, index) => index === targetIndex ? sourceIndex : parent) }
+    setNodeEdges((allEdges) => {
+      const currentEdges = allEdges[selectedDomain] ?? []
+      if (currentEdges.some((edge) => edge.source === sourceIndex && edge.target === targetIndex)) return allEdges
+      return { ...allEdges, [selectedDomain]: [...currentEdges, { source: sourceIndex, target: targetIndex }] }
     })
   }
 
@@ -362,6 +381,7 @@ function App() {
     setNodeColors((colors) => ({ ...colors, [selectedDomain]: (colors[selectedDomain] ?? []).filter((_, valueIndex) => valueIndex !== index) }))
     setNodeSizes((sizes) => ({ ...sizes, [selectedDomain]: (sizes[selectedDomain] ?? []).filter((_, valueIndex) => valueIndex !== index) }))
     setNodeIds((ids) => ({ ...ids, [selectedDomain]: (ids[selectedDomain] ?? []).filter((_, valueIndex) => valueIndex !== index) }))
+    setNodeEdges((allEdges) => ({ ...allEdges, [selectedDomain]: (allEdges[selectedDomain] ?? []).filter((edge) => edge.source !== index && edge.target !== index).map((edge) => ({ source: edge.source > index ? edge.source - 1 : edge.source, target: edge.target > index ? edge.target - 1 : edge.target })) }))
     setNodeParents((parents) => ({ ...parents, [selectedDomain]: (parents[selectedDomain] ?? []).filter((_, valueIndex) => valueIndex !== index).map((parent) => parent === index ? -1 : parent !== null && parent >= 0 && parent > index ? parent - 1 : parent) }))
     setPendingDeleteNode(null)
   }
@@ -516,7 +536,7 @@ function App() {
             <div className="domain-detail-head"><button className="back-link" onClick={() => setSelectedDomain(null)}>← 我的领域</button><button className="add-button" onClick={() => openCapture('quick')}>+ 记录到{selectedDomain}</button></div>
             <div className="section-title"><div><span className="eyebrow">03 / SKILL MAP</span><h2>{selectedDomain}</h2></div><span className="domain-detail-progress">{domainCatalog.find((domain) => domain.name === selectedDomain)?.progress ?? 0}% 学习进展</span></div>
             <p className="view-intro">从真实记录中整理节点，不追求一开始就完整。先留下足迹，再慢慢长出自己的技能树。</p>
-            <ForceSkillMap key={selectedDomain} domain={selectedDomain} labels={nodeLabels[selectedDomain] ?? []} colors={nodeColors[selectedDomain] ?? []} sizes={nodeSizes[selectedDomain] ?? []} parents={nodeParents[selectedDomain] ?? []} nodeIds={nodeIds[selectedDomain] ?? []} positions={nodePositions[selectedDomain] ?? {}} onPositionsChange={(positions) => setNodePositions((all) => ({ ...all, [selectedDomain]: positions }))} onAdd={addSkillNode} onConnect={connectSkillNodes} onDelete={deleteSkillNode} onResize={(index, nextSize) => setNodeSizes((sizes) => ({ ...sizes, [selectedDomain]: (sizes[selectedDomain] ?? []).map((value, valueIndex) => valueIndex === index ? nextSize : value) }))} onEdit={(index, label, color) => { setEditingNode({ index, label, color }); setEditingNodeText(label) }} />
+            <ForceSkillMap key={selectedDomain} domain={selectedDomain} labels={nodeLabels[selectedDomain] ?? []} colors={nodeColors[selectedDomain] ?? []} sizes={nodeSizes[selectedDomain] ?? []} parents={nodeParents[selectedDomain] ?? []} edges={nodeEdges[selectedDomain] ?? []} nodeIds={nodeIds[selectedDomain] ?? []} positions={nodePositions[selectedDomain] ?? {}} onPositionsChange={(positions) => setNodePositions((all) => ({ ...all, [selectedDomain]: positions }))} onAdd={addSkillNode} onConnect={connectSkillNodes} onDelete={deleteSkillNode} onResize={(index, nextSize) => setNodeSizes((sizes) => ({ ...sizes, [selectedDomain]: (sizes[selectedDomain] ?? []).map((value, valueIndex) => valueIndex === index ? nextSize : value) }))} onEdit={(index, label, color) => { setEditingNode({ index, label, color }); setEditingNodeText(label) }} />
             <div className="domain-note-strip"><span>本领域笔记</span><strong>{inboxRecords.filter((record) => (record.domain ?? '未选择领域') === selectedDomain).length} 条</strong><button className="plain-link" onClick={() => setView('inbox')}>查看记录 →</button></div>
           </section>}
 
