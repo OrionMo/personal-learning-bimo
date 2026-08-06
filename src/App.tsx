@@ -138,7 +138,7 @@ function ForceSkillMap({ domain, labels, colors, sizes, parents, edges, nodeIds,
   const handleCanvasDown = (event: PointerEvent<HTMLDivElement>) => { if ((event.target as HTMLElement).closest('[data-node]')) return; setSelectedIndex(null); event.currentTarget.setPointerCapture(event.pointerId); interactionRef.current = { type: 'pan', moved: false, startX: event.clientX, startY: event.clientY, startPanX: pan.x, startPanY: pan.y } }
   const handleCanvasMove = (event: PointerEvent<HTMLDivElement>) => { const interaction = interactionRef.current; if (!interaction || interaction.type !== 'pan') return; const dx = event.clientX - interaction.startX; const dy = event.clientY - interaction.startY; if (Math.hypot(dx, dy) > 3) interaction.moved = true; setPan({ x: interaction.startPanX + dx, y: interaction.startPanY + dy }) }
   const handleCanvasUp = (event: PointerEvent<HTMLDivElement>) => { if (interactionRef.current?.type === 'pan') event.currentTarget.releasePointerCapture(event.pointerId); interactionRef.current = null }
-  const handleWheel = (event: WheelEvent<HTMLDivElement>) => { event.preventDefault(); event.stopPropagation(); setZoom((value) => Math.max(.65, Math.min(1.8, value - event.deltaY * .001))) }
+  const handleWheel = (event: WheelEvent<HTMLDivElement>) => { event.preventDefault(); event.stopPropagation(); setZoom((value) => Math.max(.2, Math.min(1.8, value - event.deltaY * .001))) }
   const connectionTargetAt = (point: { x: number; y: number }, sourceIndex: number) => {
     let closest: number | null = null
     let closestDistance = Number.POSITIVE_INFINITY
