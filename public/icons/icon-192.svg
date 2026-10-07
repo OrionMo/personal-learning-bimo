@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192" role="img" aria-label="个人能力成长库">
+  <rect width="192" height="192" rx="44" fill="#20231f"/>
+  <path d="M48 123V69c0-8.3 6.7-15 15-15h66c8.3 0 15 6.7 15 15v54c0 8.3-6.7 15-15 15H63c-8.3 0-15-6.7-15-15Z" fill="#d7f06a"/>
+  <path d="M72 99.5 88 115l33-37" fill="none" stroke="#20231f" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"/>
+  <circle cx="143" cy="49" r="17" fill="#ff8d72"/>
+</svg>
