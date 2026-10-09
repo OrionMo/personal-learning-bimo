@@ -2591,6 +2591,593 @@ select {
   padding: 0;
 }
 
+/* Xiaomi 15 / compact full-screen phones */
+button,
+[role="button"],
+a,
+input,
+textarea,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pending-record {
+  position: relative;
+}
+
+.pending-record .inbox-record-meta {
+  padding-right: 360px;
+}
+
+.pending-record-actions {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  margin: 0;
+}
+
+@media (max-width: 850px) {
+  .app-shell {
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+
+  .mobile-nav {
+    min-height: calc(72px + env(safe-area-inset-bottom));
+    padding: 8px 10px calc(7px + env(safe-area-inset-bottom));
+  }
+
+  .app-shell.tree-workspace-active {
+    height: 100vh;
+    height: 100dvh;
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+
+  .tree-workspace-active .content-area {
+    height: calc(100vh - 72px - env(safe-area-inset-bottom));
+    height: calc(100dvh - 72px - env(safe-area-inset-bottom));
+  }
+
+  .capture-modal,
+  .learning-card-detail,
+  .node-edit-modal,
+  .ai-interview-modal,
+  .ai-draft-modal {
+    max-height: min(92vh, 820px);
+    max-height: min(92dvh, 820px);
+  }
+
+  .pending-record .inbox-record-meta {
+    padding-right: 0;
+  }
+
+  .pending-record-actions {
+    position: static;
+    margin: 14px 0 0;
+  }
+}
+
+@media (max-width: 430px) {
+  html,
+  body,
+  #root {
+    width: 100%;
+    min-width: 0;
+  }
+
+  body {
+    overflow-x: hidden;
+    overscroll-behavior-y: none;
+  }
+
+  .page-content,
+  .tree-content .page-content {
+    padding: 20px 16px calc(28px + env(safe-area-inset-bottom));
+  }
+
+  .view-page > .section-title,
+  .inbox-section > .section-title,
+  .hero-row,
+  .skill-tree-titlebar {
+    min-height: 0;
+  }
+
+  .view-page > .section-title,
+  .inbox-section > .section-title,
+  .tree-page:not(.tree-workspace) > .section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-direction: row;
+    gap: 10px;
+    border-bottom: 0;
+    padding: 4px 0 22px;
+  }
+
+  .view-page > .section-title h2,
+  .inbox-section > .section-title h2,
+  .hero-row h1 {
+    font-size: 38px;
+    line-height: 42px;
+    letter-spacing: -0.065em;
+  }
+
+  .eyebrow,
+  .cards-page > .view-intro,
+  .inbox-section > .view-intro,
+  .progress-header p {
+    display: none;
+  }
+
+  .add-button,
+  .inbox-manage-toggle {
+    min-height: 44px;
+    flex: 0 0 auto;
+    border-radius: 999px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+
+  .tree-page:not(.tree-workspace) > .section-title .add-button {
+    width: auto;
+  }
+
+  .mobile-nav {
+    right: 0;
+    left: 0;
+    gap: 0;
+    border-top-color: rgba(17, 17, 19, 0.08);
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 -8px 24px rgba(17, 17, 19, 0.045);
+  }
+
+  .mobile-nav button {
+    min-width: 0;
+    flex: 1 1 25%;
+    gap: 3px;
+    padding: 5px 4px;
+    font-size: 11px;
+    touch-action: manipulation;
+  }
+
+  .mobile-nav-icon svg {
+    width: 23px;
+    height: 23px;
+  }
+
+  .mobile-nav button b {
+    top: 1px;
+    right: calc(50% - 25px);
+  }
+
+  /* Skill tree */
+  .tree-workspace-active .page-content {
+    padding: 0 14px;
+  }
+
+  .tree-workspace-active .tree-workspace {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .tree-workspace-active .skill-tree-titlebar {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 10px;
+    padding: 18px 2px 14px;
+  }
+
+  .tree-workspace-active .skill-tree-title {
+    min-width: 0;
+    grid-column: 1 / -1;
+    padding-right: 56px;
+  }
+
+  .tree-workspace-active .skill-tree-title h1 {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 34px;
+    line-height: 40px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tree-workspace-active .domain-detail-actions {
+    display: grid;
+    width: 100%;
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .tree-workspace-active .domain-switch-button,
+  .tree-workspace-active .tree-quick-record-button {
+    width: 100%;
+    min-width: 0;
+    height: 48px;
+    min-height: 48px;
+    padding: 0 12px;
+    font-size: 14px;
+  }
+
+  .tree-workspace-active .ai-button {
+    position: absolute;
+    top: 16px;
+    right: 2px;
+    width: 46px;
+    height: 46px;
+    min-height: 46px;
+  }
+
+  .tree-workspace-active .neural-map {
+    min-height: 0;
+  }
+
+  .tree-workspace-active .mindmap-toolbar {
+    top: 8px;
+    left: 2px;
+  }
+
+  .tree-workspace-active .mindmap-reset {
+    top: 8px;
+    right: 2px;
+    width: 42px;
+    height: 42px;
+  }
+
+  .tree-workspace-active .neural-node,
+  .tree-workspace-active .neural-root {
+    border-radius: 28%;
+  }
+
+  .tree-workspace-active .mobile-node-sheet {
+    right: -14px;
+    left: -14px;
+    max-height: min(245px, calc(100% - 18px));
+    border-radius: 28px 28px 0 0;
+    padding: 8px 18px 12px;
+  }
+
+  .tree-workspace-active .mobile-sheet-title strong {
+    font-size: 22px;
+    line-height: 28px;
+  }
+
+  .tree-workspace-active .mobile-sheet-title p {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tree-workspace-active .mobile-node-sheet textarea {
+    height: 62px;
+  }
+
+  /* Learning records */
+  .record-organizer {
+    gap: 12px;
+    margin: 0 0 16px;
+  }
+
+  .record-domain-scroll-shell,
+  .inbox-domain-filter {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .record-domain-scroll-shell::after {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 28px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0), #fff 82%);
+    content: "";
+    pointer-events: none;
+  }
+
+  .record-domain-scroll-button {
+    display: none;
+  }
+
+  .record-domain-tabs {
+    gap: 8px;
+    padding: 2px 28px 2px 0;
+    scroll-padding-inline: 0 28px;
+    scroll-snap-type: x proximity;
+  }
+
+  .record-domain-tabs button {
+    min-height: 44px;
+    flex: 0 0 auto;
+    padding: 9px 14px;
+    scroll-snap-align: start;
+    touch-action: manipulation;
+  }
+
+  .record-view-switch {
+    width: 100%;
+    align-self: stretch;
+    border-radius: 14px;
+    padding: 4px;
+  }
+
+  .record-view-switch button {
+    min-height: 42px;
+    flex: 1 1 50%;
+    border-radius: 11px;
+    font-size: 14px;
+  }
+
+  .record-node-groups {
+    gap: 12px;
+  }
+
+  .record-node-group {
+    border-radius: 20px;
+  }
+
+  .record-node-group > summary {
+    grid-template-columns: 40px minmax(0, 1fr) auto 16px;
+    min-height: 72px;
+    padding: 12px 14px;
+  }
+
+  .record-node-group-copy strong {
+    font-size: 16px;
+    line-height: 22px;
+  }
+
+  .record-node-records {
+    gap: 0;
+    background: #fff;
+    padding: 0 14px 4px;
+  }
+
+  .record-node-records .inbox-record {
+    border: 0;
+    border-top: 1px solid var(--apple-border);
+    border-radius: 0;
+    padding: 16px 0;
+    box-shadow: none;
+  }
+
+  /* Inbox */
+  .inbox-section-header-actions {
+    gap: 6px;
+  }
+
+  .inbox-section-header-actions .add-button {
+    padding: 0 13px;
+  }
+
+  .inbox-domain-filter {
+    margin-top: 0;
+  }
+
+  .inbox-list {
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  .inbox-record {
+    border-radius: 20px;
+    padding: 16px;
+  }
+
+  .pending-record .inbox-record-meta {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .pending-record .inbox-record-meta b {
+    max-width: 100%;
+    overflow: hidden;
+    padding: 5px 9px;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pending-record > p {
+    margin-top: 14px;
+    font-size: 16px;
+    line-height: 1.55;
+  }
+
+  .pending-record-actions {
+    display: grid;
+    width: 100%;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 0.82fr);
+    gap: 7px;
+  }
+
+  .pending-record-actions button {
+    min-width: 0;
+    min-height: 44px;
+    justify-content: center;
+    border-radius: 999px;
+    padding: 0 8px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .pending-record-actions button svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .inbox-record-images {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .inbox-record-image {
+    max-height: 150px;
+  }
+
+  .inbox-section.is-managing {
+    padding-bottom: 152px;
+  }
+
+  .inbox-manage-bar {
+    right: 10px;
+    bottom: calc(78px + env(safe-area-inset-bottom));
+    left: 10px;
+    border-radius: 18px;
+  }
+
+  /* Progress */
+  .progress-page {
+    display: flex;
+    gap: 20px;
+    flex-direction: column;
+  }
+
+  .progress-header {
+    order: 0;
+    padding: 4px 0 2px;
+  }
+
+  .progress-header h1 {
+    font-size: 38px;
+    line-height: 42px;
+  }
+
+  .progress-week-card {
+    order: 1;
+  }
+
+  .progress-domain-card {
+    order: 2;
+  }
+
+  .progress-next-card {
+    order: 3;
+  }
+
+  .progress-week-card,
+  .progress-domain-card,
+  .progress-next-card {
+    border-radius: 20px;
+    padding: 18px 16px;
+    box-shadow: none;
+  }
+
+  .progress-week-card,
+  .progress-next-card {
+    background: #f7f7f8;
+  }
+
+  .progress-domain-card {
+    border: 0;
+    padding-right: 0;
+    padding-left: 0;
+  }
+
+  .progress-week-card h2,
+  .progress-domain-card > h2 {
+    font-size: 24px;
+    line-height: 30px;
+  }
+
+  .progress-metric-grid {
+    margin-top: 14px;
+  }
+
+  .progress-metric-grid strong {
+    font-size: 28px;
+  }
+
+  .progress-week-activity {
+    margin-top: 14px;
+    padding-top: 14px;
+  }
+
+  .progress-week-activity span {
+    font-size: 10px;
+  }
+
+  .progress-domain-list {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    overflow-x: auto;
+    padding: 0 16px 3px 0;
+    scrollbar-width: none;
+  }
+
+  .progress-domain-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .progress-domain-row {
+    display: inline-flex;
+    min-height: 44px;
+    flex: 0 0 auto;
+    align-items: center;
+    border: 0;
+    border-radius: 999px;
+    background: var(--apple-muted-surface);
+    padding: 0 16px;
+  }
+
+  .progress-domain-copy strong {
+    font-size: 14px;
+  }
+
+  .progress-domain-copy small,
+  .progress-domain-row > svg,
+  .progress-domain-bar {
+    display: none;
+  }
+
+  .progress-next-card {
+    border-color: var(--apple-border);
+  }
+
+  .progress-next-card > span {
+    color: var(--apple-secondary);
+  }
+
+  .progress-next-card h2 {
+    font-size: 24px;
+    line-height: 30px;
+  }
+
+  .progress-next-card button {
+    min-height: 48px;
+  }
+}
+
+@media (max-width: 370px) {
+  .view-page > .section-title h2,
+  .inbox-section > .section-title h2,
+  .progress-header h1 {
+    font-size: 34px;
+  }
+
+  .add-button,
+  .inbox-manage-toggle {
+    padding-inline: 11px;
+    font-size: 12px;
+  }
+
+  .tree-workspace-active .skill-tree-title h1 {
+    font-size: 30px;
+  }
+
+  .pending-record-actions button {
+    padding-inline: 6px;
+    font-size: 11px;
+  }
+}
+
 /* Learning progress: weekly review and next action */
 .progress-page,
 .progress-detail-page {
@@ -7589,4 +8176,99 @@ select:focus-visible {
   position: relative;
   overflow: hidden;
   padding: 0;
+}
+
+/* Xiaomi 15: keep compact-phone overrides after all legacy mobile rules. */
+@media (max-width: 430px) {
+  .mobile-nav {
+    min-height: calc(72px + env(safe-area-inset-bottom));
+    gap: 0;
+    padding: 8px 10px calc(7px + env(safe-area-inset-bottom));
+  }
+
+  .mobile-nav button {
+    min-width: 0;
+    flex: 1 1 25%;
+    gap: 3px;
+    padding: 5px 4px;
+  }
+
+  .record-domain-scroll-button {
+    display: none;
+  }
+
+  .record-domain-tabs {
+    padding-right: 28px;
+  }
+
+  .progress-page {
+    display: flex;
+    gap: 12px;
+    flex-direction: column;
+  }
+
+  .progress-header {
+    order: 0;
+    padding: 4px 0 6px;
+  }
+
+  .progress-week-card {
+    order: 1;
+  }
+
+  .progress-domain-card {
+    order: 2;
+  }
+
+  .progress-next-card {
+    order: 3;
+  }
+
+  .progress-week-card,
+  .progress-domain-card,
+  .progress-next-card {
+    border-radius: 20px;
+    padding: 18px 16px;
+    box-shadow: none;
+  }
+
+  .progress-domain-card {
+    border: 0;
+    padding-right: 0;
+    padding-left: 0;
+  }
+
+  .progress-domain-list {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    overflow-x: auto;
+    padding: 0 16px 3px 0;
+    scrollbar-width: none;
+  }
+
+  .progress-domain-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .progress-domain-row {
+    display: inline-flex;
+    min-height: 44px;
+    flex: 0 0 auto;
+    align-items: center;
+    border: 0;
+    border-radius: 999px;
+    background: var(--apple-muted-surface);
+    padding: 0 16px;
+  }
+
+  .progress-domain-copy strong {
+    font-size: 14px;
+  }
+
+  .progress-domain-copy small,
+  .progress-domain-row > svg,
+  .progress-domain-bar {
+    display: none;
+  }
 }

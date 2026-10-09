@@ -4298,7 +4298,7 @@ function App() {
                     const selected = selectedPendingRecordIdSet.has(record.id);
                     return (
                     <article
-                      className={`inbox-record ${inboxManageMode ? "is-selectable" : ""} ${selected ? "is-selected" : ""}`}
+                      className={`inbox-record pending-record ${inboxManageMode ? "is-selectable" : ""} ${selected ? "is-selected" : ""}`}
                       key={record.id}
                       role={inboxManageMode ? "checkbox" : undefined}
                       aria-checked={inboxManageMode ? selected : undefined}
@@ -4328,8 +4328,10 @@ function App() {
                         )}
                         <span>{record.createdAt}</span>
                         <b>{record.domain ?? "未选择领域"} · 待归入节点</b>
-                        {!inboxManageMode && (
-                          <div className="inbox-record-actions">
+                      </div>
+                      <p>{recordDisplayText(record)}</p>
+                      {!inboxManageMode && (
+                        <div className="inbox-record-actions pending-record-actions">
                           <button
                             className="recommend-action"
                             aria-label="让 AI 推荐这条记录的归属节点"
@@ -4355,10 +4357,8 @@ function App() {
                             <Trash aria-hidden="true" weight="regular" />
                             删除
                           </button>
-                          </div>
-                        )}
-                      </div>
-                      <p>{recordDisplayText(record)}</p>
+                        </div>
+                      )}
                       {!inboxManageMode && recordSuggestions[record.id] && (
                         <div className="record-suggestion">
                           <div>
